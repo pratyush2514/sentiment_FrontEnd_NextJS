@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MOCK_AUTH: "false"
+  BACKEND_URL: "https://backend.invalid"
+  BACKEND_API_TOKEN: "ci-token"
+  SESSION_SECRET: "ci-session-secret"
+  NEXT_PUBLIC_APP_URL: "https://pulseboard.example.com"
+  SLACK_CLIENT_ID: "ci-slack-client-id"
+  SLACK_CLIENT_SECRET: "ci-slack-client-secret"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+  bundle-analyze:
+    name: Bundle Analyze
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build:analyze
+
+      - name: Verify analyzer output
+        run: |
+          test -f .next/analyze/client.html
+          test -f .next/analyze/nodejs.html
+
+      - name: Upload bundle analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-bundle-analysis
+          path: .next/analyze/
+          retention-days: 14
+          if-no-files-found: error
+
+  playwright:
+    name: Playwright
+    runs-on: ubuntu-latest
+    needs: [build]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:ci
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [build, bundle-analyze, playwright]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t pulseboard-frontend:ci .
+
+      - name: Verify image contents
+        run: docker run --rm --entrypoint sh pulseboard-frontend:ci -c "test -f /app/server.js"
