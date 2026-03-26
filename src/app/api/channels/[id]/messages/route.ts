@@ -16,6 +16,7 @@ export async function GET(
   }
 
   const risk = searchParams.get("risk") ?? undefined;
+  const scope = searchParams.get("scope") ?? undefined;
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const perPage = Math.max(1, parseInt(searchParams.get("per_page") ?? "20", 10));
   const offset = (page - 1) * perPage;
@@ -26,6 +27,9 @@ export async function GET(
     query.set("offset", String(offset));
     if (risk) {
       query.set("risk", risk);
+    }
+    if (scope) {
+      query.set("scope", scope);
     }
 
     const raw = await backendFetch<BackendChannelAnalyticsResponse>(

@@ -3,12 +3,14 @@
 import useSWR from "swr";
 import type { FlaggedMessage, PaginatedResponse } from "@/lib/types";
 import type { EscalationRisk } from "@/lib/types";
+import type { ProductWindowScope } from "@/lib/types";
 
 interface UseMessagesOptions {
   channelId: string | null;
   risk?: EscalationRisk | "flagged";
   page?: number;
   perPage?: number;
+  scope?: ProductWindowScope | null;
 }
 
 // apiFetch returns json.data, but paginated responses need the full envelope,
@@ -33,11 +35,13 @@ export function useMessages({
   risk,
   page = 1,
   perPage = 20,
+  scope = null,
 }: UseMessagesOptions) {
   const params = new URLSearchParams();
   if (risk) params.set("risk", risk);
   params.set("page", String(page));
   params.set("per_page", String(perPage));
+  if (scope) params.set("scope", scope);
 
   const key = channelId
     ? `/api/channels/${channelId}/messages?${params.toString()}`

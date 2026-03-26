@@ -65,6 +65,12 @@ export interface DashboardOverviewViewModel {
   channelsLoading: boolean;
   alertsLoading: boolean;
   trendsLoading: boolean;
+  overviewUnavailable: boolean;
+  channelsUnavailable: boolean;
+  alertsUnavailable: boolean;
+  trendsUnavailable: boolean;
+  hasUnavailableData: boolean;
+  unavailableSections: string[];
   isLoading: boolean;
   trendRange: DashboardTrendRange;
   setTrendRange: Dispatch<SetStateAction<DashboardTrendRange>>;
@@ -124,6 +130,7 @@ export interface UseChannelDetailModelOptions {
   queuedBackfillRetry?: boolean;
   initialSelectedParticipantId?: string | null;
   activeThreadLimit?: number;
+  scope?: string | null;
 }
 
 export interface ThreadDetailActionPlan {
@@ -158,6 +165,7 @@ export interface UseThreadDetailModelOptions {
   highlightedMessageTs?: string | null;
   analysisTargetLimit?: number;
   threadSeedLimit?: number;
+  scope?: string | null;
 }
 
 export type FollowUpActionType =

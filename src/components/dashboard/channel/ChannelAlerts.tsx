@@ -14,7 +14,7 @@ interface ChannelAlertsProps {
 }
 
 export function ChannelAlerts({ channelId, attentionSummary, relatedIncidents }: ChannelAlertsProps) {
-  const { data: alerts, isLoading } = useAlerts({ limit: 20, channelId });
+  const { data: alerts, isLoading, error } = useAlerts({ limit: 20, channelId });
 
   if (isLoading) {
     return (
@@ -41,12 +41,12 @@ export function ChannelAlerts({ channelId, attentionSummary, relatedIncidents }:
   return (
     <div className="rounded-xl border border-border-subtle bg-bg-secondary/60 p-5">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <IconAlertTriangle size={14} className="text-text-tertiary" />
-          <h2 className="font-sans text-sm font-semibold text-text-primary">
+        <div className="flex items-center gap-2.5">
+          <IconAlertTriangle size={16} className="text-text-tertiary" />
+          <h2 className="font-sans text-base font-semibold text-text-primary">
             Needs Attention
             {items.length > 0 && (
-              <span className="ml-2 rounded-full bg-anger/15 px-1.5 py-0.5 font-mono text-[10px] font-medium text-anger">
+              <span className="ml-2 rounded-full bg-anger/15 px-2 py-0.5 font-mono text-xs font-bold text-anger">
                 {items.length}
               </span>
             )}
@@ -54,27 +54,34 @@ export function ChannelAlerts({ channelId, attentionSummary, relatedIncidents }:
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {error ? (
+        <div className="flex items-center gap-3 rounded-lg border border-warning/25 bg-warning/8 px-4 py-3.5">
+          <IconAlertTriangle size={16} className="text-warning shrink-0" />
+          <p className="font-body text-sm text-text-secondary">
+            Attention data is temporarily unavailable for this channel. The visible state may be stale until the backend responds again.
+          </p>
+        </div>
+      ) : items.length === 0 ? (
         summary.status !== "clear" ? (
-          <div className="flex items-center gap-3 rounded-lg border border-warning/20 bg-warning/5 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-lg border border-warning/20 bg-warning/5 px-4 py-3.5">
             <IconAlertTriangle size={16} className="text-warning shrink-0" />
-            <p className="font-body text-xs text-text-secondary">
+            <p className="font-body text-sm text-text-secondary">
               {summary.message}
             </p>
           </div>
         ) : relatedIncident ? (
-          <div className="flex items-center gap-3 rounded-lg border border-border-subtle bg-bg-primary/40 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-lg border border-border-subtle bg-bg-primary/40 px-4 py-3.5">
             <IconInfoCircle size={16} className="text-text-tertiary shrink-0" />
-            <p className="font-body text-xs text-text-secondary">
+            <p className="font-body text-sm text-text-secondary">
               {relatedIncident.blocksLocalWork
                 ? `A related incident from #${relatedIncident.sourceChannelName} was mentioned here and may affect work in this channel.`
                 : `A related incident from #${relatedIncident.sourceChannelName} was mentioned in this channel.`}
             </p>
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-lg border border-joy/20 bg-joy/5 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-lg border border-joy/20 bg-joy/5 px-4 py-3.5">
             <IconShieldCheck size={16} className="text-joy shrink-0" />
-            <p className="font-body text-xs text-text-secondary">
+            <p className="font-body text-sm text-text-secondary">
               Nothing needs attention in this channel right now.
             </p>
           </div>
@@ -100,41 +107,41 @@ function AlertItem({ alert }: { alert: DashboardAlert }) {
   return (
     <Link
       href={href}
-      className="block rounded-lg border border-border-subtle bg-bg-primary/50 p-3 transition-all duration-150 hover:border-border-hover hover:bg-bg-primary/80"
+      className="block rounded-lg border border-border-subtle bg-bg-primary/50 p-3.5 transition-all duration-150 hover:border-border-hover hover:bg-bg-primary/80 hover:shadow-sm"
     >
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] font-medium text-text-primary">
+        <span className="font-mono text-xs font-semibold text-text-primary">
           {alert.title}
         </span>
         <AlertBadge badge={badge} />
       </div>
       {alert.actorName && (
-        <p className="mb-1 font-sans text-[11px] font-semibold text-text-primary">
+        <p className="mb-1 font-sans text-xs font-semibold text-text-primary">
           {alert.actorName}
         </p>
       )}
       <HighlightedText
         text={alert.message}
-        className="font-body text-[11px] leading-relaxed text-text-secondary line-clamp-2"
+        className="font-body text-xs leading-relaxed text-text-secondary line-clamp-2"
       />
       {threadInsights.length > 0 || crucialMessage ? (
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {crucialMessage ? (
-            <span className="rounded-full bg-anger/10 px-1.5 py-0.5 font-mono text-[9px] text-anger">
+            <span className="rounded-full bg-anger/10 px-2 py-0.5 font-mono text-[10px] text-anger">
               Crucial message
             </span>
           ) : null}
           {threadInsights.slice(0, 2).map((insight, index) => (
             <span
               key={`${alert.id}-${insight.label}-${index}`}
-              className="rounded-full bg-bg-secondary px-1.5 py-0.5 font-mono text-[9px] text-text-tertiary"
+              className="rounded-full bg-bg-secondary px-2 py-0.5 font-mono text-[10px] text-text-tertiary"
             >
               {insight.label}
             </span>
           ))}
         </div>
       ) : null}
-      <p className="mt-1 font-mono text-[9px] text-text-tertiary">{liveTime}</p>
+      <p className="mt-1.5 font-mono text-[10px] text-text-tertiary">{liveTime}</p>
     </Link>
   );
 }

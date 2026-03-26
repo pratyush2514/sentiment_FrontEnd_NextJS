@@ -11,9 +11,17 @@ import {
 export function useThreads(
   channelId: string | null,
   options?: DashboardQueryConfig,
+  scope?: string | null,
 ) {
+  const params = new URLSearchParams();
+  if (scope) {
+    params.set("scope", scope);
+  }
+
   return useSWR<ChannelThreadsData>(
-    channelId ? `/api/channels/${channelId}/threads` : null,
+    channelId
+      ? `/api/channels/${channelId}/threads${params.toString() ? `?${params.toString()}` : ""}`
+      : null,
     apiFetch,
     {
       ...resolveDashboardQueryConfig(

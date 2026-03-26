@@ -4,12 +4,13 @@ import { useState } from "react";
 import { FlaggedMessageCard } from "./FlaggedMessageCard";
 import { Skeleton } from "@/components/ui";
 import { useMessages } from "@/lib/hooks";
-import type { EscalationRisk } from "@/lib/types";
+import type { EscalationRisk, ProductWindowScope } from "@/lib/types";
 
 interface FlaggedMessagesProps {
   channelId: string;
   userMap?: Map<string, string>;
   isRiskOnlyChannel?: boolean;
+  scope?: ProductWindowScope | null;
 }
 
 type FlaggedRiskFilter = EscalationRisk | "flagged";
@@ -24,6 +25,7 @@ export function FlaggedMessages({
   channelId,
   userMap,
   isRiskOnlyChannel = false,
+  scope = "active",
 }: FlaggedMessagesProps) {
   const [riskFilter, setRiskFilter] = useState<FlaggedRiskFilter>("flagged");
   const [page, setPage] = useState(1);
@@ -33,6 +35,7 @@ export function FlaggedMessages({
     risk: riskFilter,
     page,
     perPage: 20,
+    scope,
   });
 
   const messages = result?.data ?? [];
@@ -43,10 +46,10 @@ export function FlaggedMessages({
   return (
     <div className="rounded-xl border border-border-subtle bg-bg-secondary/60 p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-sans text-sm font-semibold text-text-primary">
+        <h2 className="font-sans text-base font-semibold text-text-primary">
           Flagged Messages
           {total > 0 && (
-            <span className="ml-2 rounded-full bg-anger/15 px-1.5 py-0.5 font-mono text-[10px] font-medium text-anger">
+            <span className="ml-2 rounded-full bg-anger/15 px-2 py-0.5 font-mono text-xs font-bold text-anger">
               {total}
             </span>
           )}
@@ -60,7 +63,7 @@ export function FlaggedMessages({
                 setPage(1);
               }}
               className={[
-                "rounded-md px-2 py-1 font-mono text-[10px] font-medium transition-colors duration-150",
+                "rounded-md px-2.5 py-1.5 font-mono text-xs font-medium transition-colors duration-150",
                 riskFilter === f.value
                   ? "bg-accent/10 text-accent"
                   : "text-text-tertiary hover:text-text-secondary",
@@ -79,7 +82,7 @@ export function FlaggedMessages({
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <p className="py-8 text-center font-mono text-xs text-text-tertiary">
+        <p className="py-8 text-center font-body text-sm text-text-tertiary">
           {!result || total === 0
             ? isRiskOnlyChannel
               ? "Risk-only monitoring is active. Flagged messages will appear here only for severe escalation or policy-risk in this channel."
@@ -107,19 +110,19 @@ export function FlaggedMessages({
       )}
 
       <div className="mt-4 flex items-center justify-between border-t border-border-subtle pt-4">
-        <p className="font-mono text-[10px] text-text-tertiary">Page {page}</p>
+        <p className="font-mono text-xs text-text-tertiary">Page {page}</p>
         <div className="flex gap-2">
           <button
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             disabled={page === 1}
-            className="rounded-md border border-border-default px-2.5 py-1 font-mono text-[10px] text-text-secondary transition-colors hover:bg-bg-tertiary/50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-border-default px-3 py-1.5 font-mono text-xs text-text-secondary transition-colors hover:bg-bg-tertiary/50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Previous
           </button>
           <button
             onClick={() => setPage((current) => current + 1)}
             disabled={!hasMore}
-            className="rounded-md border border-border-default px-2.5 py-1 font-mono text-[10px] text-text-secondary transition-colors hover:bg-bg-tertiary/50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-border-default px-3 py-1.5 font-mono text-xs text-text-secondary transition-colors hover:bg-bg-tertiary/50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next
           </button>

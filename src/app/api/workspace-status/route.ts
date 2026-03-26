@@ -10,11 +10,22 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const status = await backendFetch<WorkspaceStatusResponse>(
+    const status = await backendFetch<
+      WorkspaceStatusResponse & { installedBy?: string | null }
+    >(
       `/api/auth/workspace-status`,
       { workspaceId: auth.session.workspaceId },
     );
-    return NextResponse.json({ data: status, ok: true });
+    return NextResponse.json({
+      data: {
+        ...status,
+        canDisconnect:
+          Boolean(auth.session.userId) &&
+          Boolean(status.installedBy) &&
+          auth.session.userId === status.installedBy,
+      },
+      ok: true,
+    });
   } catch (error) {
     if (error instanceof BackendError) {
       return NextResponse.json(

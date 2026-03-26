@@ -5,10 +5,14 @@
 
 import type {
   AttentionSummary,
+  BackfillRun,
   ChannelCardData,
+  ChannelDiagnostics,
   ChannelHealth,
   ChannelSignal,
   ChannelInsight,
+  ChannelMeetingContext,
+  ChannelRecentActivity,
   ChannelState,
   CrucialMessageSummary,
   CrucialMoment,
@@ -29,8 +33,17 @@ import type {
   TimelineDataPoint,
   Emotion,
   EscalationRisk,
+  DegradationSignal,
+  IngestReadiness,
   InteractionTone,
+  IntelligenceReadiness,
+  MessageTruthCounts,
   RiskDriver,
+  SummaryArtifact,
+  SummaryCoverage,
+  SummaryCompletenessStatus,
+  ProductWindowScope,
+  UnifiedDriver,
 } from "./types";
 import type { AlertContext, DashboardAlert, WorkspaceOverview } from "./types/api";
 
@@ -41,7 +54,17 @@ export interface BackendChannelItem {
   name: string | null;
   status: string;
   conversationType?: string;
+  ingestReadiness?: string | null;
+  intelligenceReadiness?: string | null;
+  latestSummaryCompleteness?: string | null;
+  hasActiveDegradations?: boolean;
   effectiveImportanceTier?: string;
+  defaultScope?: string | null;
+  activeWindowDays?: number | null;
+  archiveWindowDays?: number | null;
+  liveWindowHours?: number | null;
+  activeMessageCount?: number | null;
+  totalImportedMessageCount?: number | null;
   messageCount: number;
   initializedAt: string | null;
   lastActivity: string | null;
@@ -51,6 +74,7 @@ export interface BackendChannelItem {
   health: ChannelHealth;
   signal: ChannelSignal;
   signalConfidence: number;
+  signalEvidenceTier?: string | null;
   effectiveChannelMode?: string;
   riskDrivers: Array<{ key: string; label: string; message: string; severity: string; category: string }>;
   attentionSummary: { status: string; title: string; message: string; driverKeys: string[] };
@@ -116,11 +140,105 @@ interface BackendActiveThread {
   threadInsight?: BackendThreadInsightSummary | null;
 }
 
+interface BackendSummaryEvidenceRef {
+  messageTs?: string | null;
+  threadTs?: string | null;
+  excerpt?: string | null;
+}
+
+interface BackendSummaryFact {
+  kind?: string | null;
+  text?: string | null;
+  evidence?: BackendSummaryEvidenceRef[] | null;
+}
+
+interface BackendSummaryArtifact {
+  id: string;
+  summaryKind: string;
+  generationMode: string;
+  completenessStatus: string;
+  summary: string;
+  keyDecisions?: string[];
+  summaryFacts?: BackendSummaryFact[];
+  degradedReasons?: string[];
+  coverageStartTs?: string | null;
+  coverageEndTs?: string | null;
+  candidateMessageCount?: number | null;
+  includedMessageCount?: number | null;
+  artifactVersion?: number | null;
+  sourceRunId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface BackendBackfillRun {
+  id: string;
+  status: string;
+  currentPhase: string;
+  pagesFetched?: number | null;
+  messagesImported?: number | null;
+  threadRootsDiscovered?: number | null;
+  threadsAttempted?: number | null;
+  threadsFailed?: number | null;
+  usersResolved?: number | null;
+  memberSyncResult?: string | null;
+  summaryArtifactId?: string | null;
+  degradedReasonCount?: number | null;
+  lastError?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+  updatedAt: string;
+}
+
+interface BackendDegradationSignal {
+  id: string;
+  scopeType: string;
+  scopeKey?: string | null;
+  messageTs?: string | null;
+  threadTs?: string | null;
+  summaryArtifactId?: string | null;
+  backfillRunId?: string | null;
+  degradationType: string;
+  severity: string;
+  details?: Record<string, unknown> | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+}
+
+interface BackendMessageTruthCounts {
+  total?: number;
+  eligible?: number;
+  pending?: number;
+  processing?: number;
+  completed?: number;
+  failed?: number;
+  suppressed?: number;
+  partial?: number;
+}
+
 export interface BackendChannelState {
   channelId: string;
   channelName?: string;
   conversationType?: string;
   status: string;
+  ingestReadiness?: string | null;
+  intelligenceReadiness?: string | null;
+  latestSummaryCompleteness?: string | null;
+  hasActiveDegradations?: boolean;
+  currentSummaryArtifactId?: string | null;
+  activeBackfillRunId?: string | null;
+  activeWindowSummary?: string | null;
+  activeWindowSummaryUpdatedAt?: string | null;
+  activeWindowSummaryCoverage?: {
+    startTs?: string | null;
+    endTs?: string | null;
+  } | null;
+  defaultScope?: string | null;
+  activeWindowDays?: number | null;
+  archiveWindowDays?: number | null;
+  liveWindowHours?: number | null;
+  activeMessageCount?: number | null;
+  totalImportedMessageCount?: number | null;
   importanceTierOverride?: string;
   recommendedImportanceTier?: string;
   effectiveImportanceTier?: string;
@@ -131,12 +249,58 @@ export interface BackendChannelState {
   updatedAt: string | null;
   lastEventAt: string | null;
   runningSummary: string;
-  keyDecisions: (string | { text: string; ts?: string; detectedAt?: string })[];
+  liveSummary?: string | null;
+  liveSummaryUpdatedAt?: string | null;
+  liveSummaryCoverage?: {
+    startTs?: string | null;
+    endTs?: string | null;
+  } | null;
+  keyDecisions: Array<
+    | string
+    | {
+        text: string;
+        ts?: string;
+        messageTs?: string | null;
+        threadTs?: string | null;
+        detectedAt?: string | null;
+        evidence?: BackendSummaryEvidenceRef[] | null;
+      }
+  >;
   sentimentSnapshot: Record<string, unknown>;
   health: ChannelHealth;
   signal: ChannelSignal;
   signalConfidence: number;
+  signalEvidenceTier?: string | null;
   riskDrivers: Array<{ key: string; label: string; message: string; severity: string; category: string }>;
+  recentActivity?: {
+    label: string;
+    windowHours: number;
+    messageCount: number;
+    activeThreads: number;
+    openFollowUps: number;
+    resolvedFollowUps: number;
+  } | null;
+  meetingContext?: {
+    latestMeeting: {
+      id: string;
+      title: string;
+      startedAt: string;
+      source: string;
+      confidence: string;
+      meetingSentiment?: string | null;
+      summary?: string | null;
+      openObligations: number;
+      overdueObligations: number;
+      blockers: string[];
+      decisions: string[];
+      nextSteps: string[];
+    };
+  } | null;
+  unifiedDrivers?: Array<{
+    level: string;
+    source: string;
+    message: string;
+  }>;
   attentionSummary: { status: string; title: string; message: string; driverKeys: string[] };
   messageDispositionCounts: {
     totalInWindow: number;
@@ -157,6 +321,9 @@ export interface BackendChannelState {
     incidentFamily?: string | null;
   }>;
   threadInsights?: BackendThreadInsight[];
+  summaryArtifact?: BackendSummaryArtifact | null;
+  backfillRun?: BackendBackfillRun | null;
+  degradationSignals?: BackendDegradationSignal[];
   healthCounts: {
     openAlertCount: number;
     highSeverityAlertCount: number;
@@ -290,6 +457,10 @@ interface BackendMessage {
   threadTs?: string;
   source: string;
   analysisStatus: string;
+  analysisEligibility?: string | null;
+  analysisExecution?: string | null;
+  analysisQuality?: string | null;
+  suppressionReason?: string | null;
   createdAt: string | null;
   replyCount?: number;
   analysis: BackendAnalysis | null;
@@ -329,6 +500,23 @@ export interface BackendLiveMessagesResponse {
   total: number;
   returned: number;
   messages: BackendMessage[];
+}
+
+export interface BackendChannelDiagnosticsResponse {
+  channelId: string;
+  channelName: string;
+  status: string;
+  ingestReadiness: string;
+  intelligenceReadiness: string;
+  latestSummaryCompleteness?: string | null;
+  hasActiveDegradations: boolean;
+  currentSummaryArtifactId?: string | null;
+  activeBackfillRunId?: string | null;
+  summaryArtifact?: BackendSummaryArtifact | null;
+  backfillRun?: BackendBackfillRun | null;
+  degradationSignals?: BackendDegradationSignal[];
+  messageTruthCounts?: BackendMessageTruthCounts | null;
+  generatedAt: string;
 }
 
 interface BackendSentimentBucket {
@@ -513,6 +701,204 @@ function normalizeHealth(health?: string | null): ChannelHealth | null {
     : null;
 }
 
+function normalizeIngestReadiness(value?: string | null): IngestReadiness | null {
+  switch (value) {
+    case "not_started":
+    case "hydrating":
+    case "ready":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizeIntelligenceReadiness(
+  value?: string | null,
+): IntelligenceReadiness | null {
+  switch (value) {
+    case "missing":
+    case "bootstrap":
+    case "partial":
+    case "ready":
+    case "stale":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizeSummaryCompleteness(
+  value?: string | null,
+): SummaryCompletenessStatus | null {
+  switch (value) {
+    case "complete":
+    case "partial":
+    case "stale":
+    case "no_recent_messages":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizeSummaryArtifactKind(
+  value?: string | null,
+): SummaryArtifact["summaryKind"] {
+  switch (value) {
+    case "channel_rollup":
+    case "thread_rollup":
+    case "backfill_rollup":
+      return value;
+    default:
+      return "channel_rollup";
+  }
+}
+
+function normalizeSummaryGenerationMode(
+  value?: string | null,
+): SummaryArtifact["generationMode"] {
+  switch (value) {
+    case "llm":
+    case "fallback":
+    case "reused_existing":
+      return value;
+    default:
+      return "llm";
+  }
+}
+
+function normalizeBackfillRunStatus(
+  value?: string | null,
+): BackfillRun["status"] {
+  switch (value) {
+    case "running":
+    case "completed":
+    case "completed_with_degradations":
+    case "failed":
+      return value;
+    default:
+      return "running";
+  }
+}
+
+function normalizeBackfillRunPhase(
+  value?: string | null,
+): BackfillRun["currentPhase"] {
+  switch (value) {
+    case "history_import":
+    case "thread_expansion":
+    case "user_enrichment":
+    case "member_sync":
+    case "initial_intelligence":
+    case "finalize":
+      return value;
+    default:
+      return "history_import";
+  }
+}
+
+function normalizeBackfillMemberSyncResult(
+  value?: string | null,
+): BackfillRun["memberSyncResult"] {
+  switch (value) {
+    case "not_started":
+    case "running":
+    case "succeeded":
+    case "degraded":
+    case "failed":
+      return value;
+    default:
+      return "not_started";
+  }
+}
+
+function normalizeDegradationScope(
+  value?: string | null,
+): DegradationSignal["scopeType"] {
+  switch (value) {
+    case "channel":
+    case "message":
+    case "thread":
+    case "summary_artifact":
+    case "backfill_run":
+      return value;
+    default:
+      return "channel";
+  }
+}
+
+function normalizeDegradationSeverity(
+  value?: string | null,
+): DegradationSignal["severity"] {
+  switch (value) {
+    case "info":
+    case "warning":
+    case "error":
+      return value;
+    default:
+      return "warning";
+  }
+}
+
+function normalizeAnalysisEligibilityValue(
+  value?: string | null,
+): ThreadMessage["analysisEligibility"] {
+  switch (value) {
+    case "eligible":
+    case "not_candidate":
+    case "policy_suppressed":
+    case "privacy_suppressed":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizeAnalysisExecutionValue(
+  value?: string | null,
+): ThreadMessage["analysisExecution"] {
+  switch (value) {
+    case "not_run":
+    case "pending":
+    case "processing":
+    case "completed":
+    case "failed":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizeAnalysisQualityValue(
+  value?: string | null,
+): ThreadMessage["analysisQuality"] {
+  switch (value) {
+    case "none":
+    case "fallback":
+    case "partial":
+    case "verified":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizeAnalysisSuppressionReasonValue(
+  value?: string | null,
+): ThreadMessage["suppressionReason"] {
+  switch (value) {
+    case "channel_not_ready":
+    case "cooldown":
+    case "importance_tier":
+    case "privacy_skip":
+    case "budget_exceeded":
+    case "not_candidate":
+      return value;
+    default:
+      return null;
+  }
+}
+
 function assertCanonicalChannelContract(params: {
   signal?: string | null;
   health?: string | null;
@@ -636,6 +1022,94 @@ function parseRiskDrivers(
   }));
 }
 
+function parseRecentActivity(
+  raw?: BackendChannelState["recentActivity"],
+): ChannelRecentActivity | null {
+  if (!raw) {
+    return null;
+  }
+
+  return {
+    label: raw.label?.trim() || "Recent activity",
+    windowHours: Math.max(1, raw.windowHours ?? 24),
+    messageCount: Math.max(0, raw.messageCount ?? 0),
+    activeThreads: Math.max(0, raw.activeThreads ?? 0),
+    openFollowUps: Math.max(0, raw.openFollowUps ?? 0),
+    resolvedFollowUps: Math.max(0, raw.resolvedFollowUps ?? 0),
+  };
+}
+
+function parseMeetingContext(
+  raw?: BackendChannelState["meetingContext"],
+): ChannelMeetingContext | null {
+  if (!raw?.latestMeeting) {
+    return null;
+  }
+
+  const meetingSentiment =
+    raw.latestMeeting.meetingSentiment === "positive" ||
+    raw.latestMeeting.meetingSentiment === "neutral" ||
+    raw.latestMeeting.meetingSentiment === "concerned" ||
+    raw.latestMeeting.meetingSentiment === "tense"
+      ? raw.latestMeeting.meetingSentiment
+      : null;
+
+  return {
+    latestMeeting: {
+      id: raw.latestMeeting.id,
+      title: raw.latestMeeting.title?.trim() || "Untitled meeting",
+      startedAt: raw.latestMeeting.startedAt,
+      source:
+        raw.latestMeeting.source === "shared_link" ||
+        raw.latestMeeting.source === "webhook"
+          ? raw.latestMeeting.source
+          : "api",
+      confidence: raw.latestMeeting.confidence === "medium" ? "medium" : "high",
+      meetingSentiment,
+      summary: raw.latestMeeting.summary?.trim() || null,
+      openObligations: Math.max(0, raw.latestMeeting.openObligations ?? 0),
+      overdueObligations: Math.max(0, raw.latestMeeting.overdueObligations ?? 0),
+      blockers: Array.isArray(raw.latestMeeting.blockers)
+        ? raw.latestMeeting.blockers.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        : [],
+      decisions: Array.isArray(raw.latestMeeting.decisions)
+        ? raw.latestMeeting.decisions.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        : [],
+      nextSteps: Array.isArray(raw.latestMeeting.nextSteps)
+        ? raw.latestMeeting.nextSteps.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        : [],
+    },
+  };
+}
+
+function parseUnifiedDrivers(
+  raw?: BackendChannelState["unifiedDrivers"],
+): UnifiedDriver[] {
+  return (raw ?? [])
+    .map((driver) => {
+      const level =
+        driver.level === "positive" ||
+        driver.level === "warning" ||
+        driver.level === "critical"
+          ? driver.level
+          : null;
+      const source =
+        driver.source === "slack" ||
+        driver.source === "fathom" ||
+        driver.source === "combined"
+          ? driver.source
+          : null;
+      const message = driver.message?.trim() ?? "";
+
+      if (!level || !source || !message) {
+        return null;
+      }
+
+      return { level, source, message };
+    })
+    .filter((driver): driver is UnifiedDriver => Boolean(driver));
+}
+
 function parseAttentionSummary(
   raw: BackendChannelItem["attentionSummary"] | BackendChannelState["attentionSummary"] | undefined,
 ): AttentionSummary {
@@ -666,6 +1140,61 @@ function parseMessageDispositionCounts(
   };
 }
 
+interface BackendChannelWindowMetadata {
+  defaultScope?: string | null;
+  activeWindowDays?: number | null;
+  archiveWindowDays?: number | null;
+  liveWindowHours?: number | null;
+  activeMessageCount?: number | null;
+  totalImportedMessageCount?: number | null;
+  messageCount?: number | null;
+}
+
+interface ParsedChannelWindowMetadata {
+  defaultScope: ProductWindowScope;
+  activeWindowDays: number;
+  archiveWindowDays: number;
+  liveWindowHours: number;
+  activeMessageCount: number;
+  totalImportedMessageCount: number;
+}
+
+function normalizeProductWindowScope(
+  value?: string | null,
+): ProductWindowScope {
+  switch (value) {
+    case "active":
+    case "archive":
+    case "live":
+      return value;
+    default:
+      return "active";
+  }
+}
+
+function parseChannelWindowMetadata(
+  raw: BackendChannelWindowMetadata,
+  activeMessageCountFallback = 0,
+): ParsedChannelWindowMetadata {
+  const activeMessageCount = Math.max(
+    0,
+    raw.activeMessageCount ?? activeMessageCountFallback ?? 0,
+  );
+  const totalImportedMessageCount = Math.max(
+    0,
+    raw.totalImportedMessageCount ?? raw.messageCount ?? activeMessageCount,
+  );
+
+  return {
+    defaultScope: normalizeProductWindowScope(raw.defaultScope),
+    activeWindowDays: Math.max(1, raw.activeWindowDays ?? 7),
+    archiveWindowDays: Math.max(1, raw.archiveWindowDays ?? 30),
+    liveWindowHours: Math.max(1, raw.liveWindowHours ?? 24),
+    activeMessageCount,
+    totalImportedMessageCount,
+  };
+}
+
 function parseWindowStats(raw?: BackendChannelState["windowStats"]): ChannelWindowStats | undefined {
   if (!raw) {
     return undefined;
@@ -679,6 +1208,172 @@ function parseWindowStats(raw?: BackendChannelState["windowStats"]): ChannelWind
     contextOnlyMessageCount: Math.max(0, raw.contextOnlyMessageCount ?? 0),
     ignoredMessageCount: Math.max(0, raw.ignoredMessageCount ?? 0),
     inflightMessageCount: Math.max(0, raw.inflightMessageCount ?? 0),
+  };
+}
+
+function parseSummaryCoverage(
+  raw?: { startTs?: string | null; endTs?: string | null } | null,
+): SummaryCoverage | null {
+  if (!raw) {
+    return null;
+  }
+
+  return {
+    startTs: raw.startTs ?? null,
+    endTs: raw.endTs ?? null,
+  };
+}
+
+function normalizeSummaryFactKind(
+  value: unknown,
+): SummaryArtifact["summaryFacts"][number]["kind"] | null {
+  switch (value) {
+    case "topic":
+    case "blocker":
+    case "resolution":
+    case "decision":
+    case "primary_issue":
+    case "open_question":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function parseSummaryEvidenceRefs(
+  raw?: BackendSummaryEvidenceRef[] | null,
+): SummaryArtifact["summaryFacts"][number]["evidence"] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [];
+  }
+
+  const parsed: SummaryArtifact["summaryFacts"][number]["evidence"] = [];
+  for (const item of raw) {
+    const messageTs = item.messageTs?.trim();
+    if (!messageTs) {
+      continue;
+    }
+
+    parsed.push({
+      messageTs,
+      threadTs: item.threadTs ?? null,
+      excerpt: item.excerpt ?? null,
+    });
+  }
+
+  return parsed;
+}
+
+function parseSummaryFacts(
+  raw?: BackendSummaryFact[] | null,
+): SummaryArtifact["summaryFacts"] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [];
+  }
+
+  return raw
+    .map((item) => {
+      const kind = normalizeSummaryFactKind(item.kind);
+      const text = item.text?.trim();
+      const evidence = parseSummaryEvidenceRefs(item.evidence);
+      if (!kind || !text || evidence.length === 0) {
+        return null;
+      }
+
+      return {
+        kind,
+        text,
+        evidence,
+      };
+    })
+    .filter((item): item is SummaryArtifact["summaryFacts"][number] => Boolean(item));
+}
+
+function parseSummaryArtifact(raw?: BackendSummaryArtifact | null): SummaryArtifact | null {
+  if (!raw) {
+    return null;
+  }
+
+  return {
+    id: raw.id,
+    summaryKind: normalizeSummaryArtifactKind(raw.summaryKind),
+    generationMode: normalizeSummaryGenerationMode(raw.generationMode),
+    completenessStatus: normalizeSummaryCompleteness(raw.completenessStatus) ?? "partial",
+    summary: raw.summary ?? "",
+    keyDecisions: Array.isArray(raw.keyDecisions) ? raw.keyDecisions : [],
+    summaryFacts: parseSummaryFacts(raw.summaryFacts),
+    degradedReasons: Array.isArray(raw.degradedReasons) ? raw.degradedReasons : [],
+    coverageStartTs: raw.coverageStartTs ?? null,
+    coverageEndTs: raw.coverageEndTs ?? null,
+    candidateMessageCount: Math.max(0, raw.candidateMessageCount ?? 0),
+    includedMessageCount: Math.max(0, raw.includedMessageCount ?? 0),
+    artifactVersion: Math.max(1, raw.artifactVersion ?? 1),
+    sourceRunId: raw.sourceRunId ?? null,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+function parseBackfillRun(raw?: BackendBackfillRun | null): BackfillRun | null {
+  if (!raw) {
+    return null;
+  }
+
+  return {
+    id: raw.id,
+    status: normalizeBackfillRunStatus(raw.status),
+    currentPhase: normalizeBackfillRunPhase(raw.currentPhase),
+    pagesFetched: Math.max(0, raw.pagesFetched ?? 0),
+    messagesImported: Math.max(0, raw.messagesImported ?? 0),
+    threadRootsDiscovered: Math.max(0, raw.threadRootsDiscovered ?? 0),
+    threadsAttempted: Math.max(0, raw.threadsAttempted ?? 0),
+    threadsFailed: Math.max(0, raw.threadsFailed ?? 0),
+    usersResolved: Math.max(0, raw.usersResolved ?? 0),
+    memberSyncResult: normalizeBackfillMemberSyncResult(raw.memberSyncResult),
+    summaryArtifactId: raw.summaryArtifactId ?? null,
+    degradedReasonCount: Math.max(0, raw.degradedReasonCount ?? 0),
+    lastError: raw.lastError ?? null,
+    startedAt: raw.startedAt,
+    completedAt: raw.completedAt ?? null,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+function parseDegradationSignals(
+  raw?: BackendDegradationSignal[] | null,
+): DegradationSignal[] {
+  if (!raw || raw.length === 0) {
+    return [];
+  }
+
+  return raw.map((signal) => ({
+    id: signal.id,
+    scopeType: normalizeDegradationScope(signal.scopeType),
+    scopeKey: signal.scopeKey ?? null,
+    messageTs: signal.messageTs ?? null,
+    threadTs: signal.threadTs ?? null,
+    summaryArtifactId: signal.summaryArtifactId ?? null,
+    backfillRunId: signal.backfillRunId ?? null,
+    degradationType: signal.degradationType,
+    severity: normalizeDegradationSeverity(signal.severity),
+    details: signal.details ?? {},
+    createdAt: signal.createdAt,
+    resolvedAt: signal.resolvedAt ?? null,
+  }));
+}
+
+function parseMessageTruthCounts(
+  raw?: BackendMessageTruthCounts | null,
+): MessageTruthCounts {
+  return {
+    total: Math.max(0, raw?.total ?? 0),
+    eligible: Math.max(0, raw?.eligible ?? 0),
+    pending: Math.max(0, raw?.pending ?? 0),
+    processing: Math.max(0, raw?.processing ?? 0),
+    completed: Math.max(0, raw?.completed ?? 0),
+    failed: Math.max(0, raw?.failed ?? 0),
+    suppressed: Math.max(0, raw?.suppressed ?? 0),
+    partial: Math.max(0, raw?.partial ?? 0),
   };
 }
 
@@ -834,6 +1529,19 @@ function normalizeMessageTriage(raw?: BackendMessageTriage | null): MessageTriag
           }
         : null,
   };
+}
+
+function normalizeSignalEvidenceTier(
+  value?: string | null,
+): "signal" | "pattern" | "confirmed" | undefined {
+  switch (value) {
+    case "signal":
+    case "pattern":
+    case "confirmed":
+      return value;
+    default:
+      return undefined;
+  }
 }
 
 function parseRelatedIncidents(
@@ -1082,15 +1790,21 @@ export function transformChannelsList(data: BackendChannelsResponse): ChannelCar
     const riskDrivers = parseRiskDrivers(ch.riskDrivers);
     const attentionSummary = parseAttentionSummary(ch.attentionSummary);
     const messageDispositionCounts = parseMessageDispositionCounts(ch.messageDispositionCounts);
+    const windowMetadata = parseChannelWindowMetadata(ch, ch.activeMessageCount ?? ch.messageCount);
     const signal = normalizeSignal(ch.signal)!;
     return {
       id: ch.channelId,
       name: ch.name ?? ch.channelId,
       status: ch.status as ChannelCardData["status"],
       conversationType: (ch.conversationType as ChannelCardData["conversationType"]) ?? "public_channel",
+      ingestReadiness: normalizeIngestReadiness(ch.ingestReadiness),
+      intelligenceReadiness: normalizeIntelligenceReadiness(ch.intelligenceReadiness),
+      latestSummaryCompleteness: normalizeSummaryCompleteness(ch.latestSummaryCompleteness),
+      hasActiveDegradations: ch.hasActiveDegradations ?? false,
       health: normalizeHealth(ch.health)!,
       signal,
       signalConfidence: ch.signalConfidence ?? 0.5,
+      signalEvidenceTier: normalizeSignalEvidenceTier(ch.signalEvidenceTier),
       effectiveChannelMode:
         ch.effectiveChannelMode === "automation" ||
         ch.effectiveChannelMode === "mixed" ||
@@ -1100,7 +1814,8 @@ export function transformChannelsList(data: BackendChannelsResponse): ChannelCar
       riskDrivers,
       attentionSummary,
       messageDispositionCounts,
-      messageCount: ch.messageCount,
+      ...windowMetadata,
+      messageCount: windowMetadata.totalImportedMessageCount,
       lastActivity: ch.lastActivity ?? ch.updatedAt ?? null,
       sentimentSnapshot: snapshot,
       healthCounts,
@@ -1147,12 +1862,35 @@ export function transformChannelState(data: BackendChannelState): ChannelState {
   const healthCounts = parseHealthCounts(data.healthCounts);
   const windowStats = parseWindowStats(data.windowStats);
   const riskDrivers = parseRiskDrivers(data.riskDrivers);
+  const recentActivity = parseRecentActivity(data.recentActivity);
+  const meetingContext = parseMeetingContext(data.meetingContext);
+  const unifiedDrivers = parseUnifiedDrivers(data.unifiedDrivers);
   const attentionSummary = parseAttentionSummary(data.attentionSummary);
   const messageDispositionCounts = parseMessageDispositionCounts(data.messageDispositionCounts);
   const relatedIncidents = parseRelatedIncidents(data.relatedIncidents);
+  const summaryArtifact = parseSummaryArtifact(data.summaryArtifact);
+  const backfillRun = parseBackfillRun(data.backfillRun);
+  const degradationSignals = parseDegradationSignals(data.degradationSignals);
+  const activeWindowSummaryCoverage =
+    parseSummaryCoverage(data.activeWindowSummaryCoverage) ??
+    (summaryArtifact
+      ? {
+          startTs: summaryArtifact.coverageStartTs ?? null,
+          endTs: summaryArtifact.coverageEndTs ?? null,
+        }
+      : null);
+  const activeWindowSummary =
+    data.activeWindowSummary?.trim() ||
+    data.runningSummary?.trim() ||
+    "";
+  const liveSummary = data.liveSummary?.trim() || null;
   const signal = normalizeSignal(data.signal)!;
   const health = normalizeHealth(data.health)!;
   const totalMsgCount = data.participants.reduce((sum, p) => sum + p.messageCount, 0) || 1;
+  const windowMetadata = parseChannelWindowMetadata(
+    data,
+    windowStats?.messageCountInWindow ?? data.activeMessageCount ?? data.messageCount,
+  );
 
   const participants: Participant[] = data.participants.map((p) => ({
     userId: p.userId,
@@ -1189,7 +1927,28 @@ export function transformChannelState(data: BackendChannelState): ChannelState {
     };
   });
 
-  const keyDecisions: KeyDecision[] = data.keyDecisions.map((kd) => {
+  const decisionFacts = summaryArtifact?.summaryFacts.filter(
+    (fact) => fact.kind === "decision",
+  ) ?? [];
+  const keyDecisionSource: BackendChannelState["keyDecisions"] = data.keyDecisions.length > 0
+    ? data.keyDecisions
+    : decisionFacts.map((fact) => ({
+        text: fact.text,
+        messageTs: fact.evidence[0]?.messageTs ?? null,
+        threadTs:
+          fact.evidence.find((evidence) => evidence.threadTs)?.threadTs ?? null,
+        ts:
+          fact.evidence.find((evidence) => evidence.threadTs)?.threadTs ??
+          undefined,
+        detectedAt:
+          fact.evidence[0]?.messageTs
+            ? new Date(
+                Number.parseFloat(fact.evidence[0].messageTs) * 1000,
+              ).toISOString()
+            : data.updatedAt ?? null,
+        evidence: fact.evidence,
+      }));
+  const keyDecisions: KeyDecision[] = keyDecisionSource.map((kd) => {
     if (typeof kd === "string") {
       return {
         text: kd,
@@ -1198,10 +1957,20 @@ export function transformChannelState(data: BackendChannelState): ChannelState {
         participantCount: 0,
       };
     }
+
+    const evidence = parseSummaryEvidenceRefs(kd.evidence);
+    const legacyTs = "ts" in kd ? kd.ts : undefined;
+
     return {
       text: kd.text,
-      detectedAt: kd.detectedAt ?? data.updatedAt ?? null,
-      threadTs: kd.ts,
+      detectedAt:
+        kd.detectedAt ??
+        (kd.messageTs
+          ? new Date(Number.parseFloat(kd.messageTs) * 1000).toISOString()
+          : data.updatedAt ?? null),
+      threadTs: kd.threadTs ?? legacyTs ?? null,
+      messageTs: kd.messageTs ?? evidence[0]?.messageTs ?? null,
+      evidence,
       confidence: 0.8,
       participantCount: 0,
     };
@@ -1235,12 +2004,35 @@ export function transformChannelState(data: BackendChannelState): ChannelState {
         ? data.effectiveChannelMode
         : "collaboration",
     initializedAt: data.initializedAt ?? null,
-    runningSummary: data.runningSummary,
+    ingestReadiness: normalizeIngestReadiness(data.ingestReadiness),
+    intelligenceReadiness: normalizeIntelligenceReadiness(data.intelligenceReadiness),
+    latestSummaryCompleteness: normalizeSummaryCompleteness(data.latestSummaryCompleteness),
+    hasActiveDegradations: data.hasActiveDegradations ?? false,
+    currentSummaryArtifactId: data.currentSummaryArtifactId ?? summaryArtifact?.id ?? null,
+    activeBackfillRunId: data.activeBackfillRunId ?? backfillRun?.id ?? null,
+    activeWindowSummary,
+    activeWindowSummaryUpdatedAt:
+      data.activeWindowSummaryUpdatedAt ??
+      summaryArtifact?.updatedAt ??
+      data.updatedAt ??
+      null,
+    activeWindowSummaryCoverage,
+    liveSummary,
+    liveSummaryUpdatedAt: data.liveSummaryUpdatedAt ?? null,
+    liveSummaryCoverage: parseSummaryCoverage(data.liveSummaryCoverage),
+    runningSummary: activeWindowSummary,
+    summaryArtifact,
+    backfillRun,
+    degradationSignals,
     health,
     signal,
     signalConfidence: data.signalConfidence ?? 0.5,
+    signalEvidenceTier: normalizeSignalEvidenceTier(data.signalEvidenceTier),
     insights: toChannelInsights(riskDrivers),
     riskDrivers,
+    recentActivity,
+    meetingContext,
+    unifiedDrivers,
     attentionSummary,
     messageDispositionCounts,
     relatedIncidents,
@@ -1254,8 +2046,33 @@ export function transformChannelState(data: BackendChannelState): ChannelState {
       normalizeThreadInsights(data.threadInsights).length > 0
         ? normalizeThreadInsights(data.threadInsights)
         : activeThreads.flatMap((thread) => thread.insights ?? []),
-    messageCount: data.messageCount,
+    ...windowMetadata,
+    messageCount: windowMetadata.totalImportedMessageCount,
     lastEventAt: data.lastEventAt ?? data.updatedAt ?? null,
+  };
+}
+
+export function transformChannelDiagnostics(
+  data: BackendChannelDiagnosticsResponse,
+): ChannelDiagnostics {
+  return {
+    channelId: data.channelId,
+    channelName: data.channelName,
+    status: data.status as ChannelDiagnostics["status"],
+    ingestReadiness: normalizeIngestReadiness(data.ingestReadiness) ?? "not_started",
+    intelligenceReadiness:
+      normalizeIntelligenceReadiness(data.intelligenceReadiness) ?? "missing",
+    latestSummaryCompleteness: normalizeSummaryCompleteness(
+      data.latestSummaryCompleteness,
+    ),
+    hasActiveDegradations: data.hasActiveDegradations ?? false,
+    currentSummaryArtifactId: data.currentSummaryArtifactId ?? null,
+    activeBackfillRunId: data.activeBackfillRunId ?? null,
+    summaryArtifact: parseSummaryArtifact(data.summaryArtifact),
+    backfillRun: parseBackfillRun(data.backfillRun),
+    degradationSignals: parseDegradationSignals(data.degradationSignals),
+    messageTruthCounts: parseMessageTruthCounts(data.messageTruthCounts),
+    generatedAt: data.generatedAt,
   };
 }
 
@@ -1361,6 +2178,10 @@ export function transformThreadMessages(data: BackendMessagesResponse): ThreadMe
       source: m.source as ThreadMessage["source"],
       createdAt: m.createdAt,
       analysisStatus: m.analysisStatus as ThreadMessage["analysisStatus"],
+      analysisEligibility: normalizeAnalysisEligibilityValue(m.analysisEligibility),
+      analysisExecution: normalizeAnalysisExecutionValue(m.analysisExecution),
+      analysisQuality: normalizeAnalysisQualityValue(m.analysisQuality),
+      suppressionReason: normalizeAnalysisSuppressionReasonValue(m.suppressionReason),
       emotion: m.analysis?.emotion,
       confidence: m.analysis?.confidence,
       escalationRisk: m.analysis?.escalationRisk,
@@ -1465,6 +2286,10 @@ export function transformLiveMessages(data: BackendLiveMessagesResponse): Thread
       links: m.links as ThreadMessage["links"],
       createdAt: m.createdAt,
       analysisStatus: m.analysisStatus as ThreadMessage["analysisStatus"],
+      analysisEligibility: normalizeAnalysisEligibilityValue(m.analysisEligibility),
+      analysisExecution: normalizeAnalysisExecutionValue(m.analysisExecution),
+      analysisQuality: normalizeAnalysisQualityValue(m.analysisQuality),
+      suppressionReason: normalizeAnalysisSuppressionReasonValue(m.suppressionReason),
       emotion: m.analysis?.emotion,
       confidence: m.analysis?.confidence,
       escalationRisk: m.analysis?.escalationRisk,
@@ -1506,6 +2331,10 @@ export function transformAlertContext(data: BackendMessagesResponse): AlertConte
     links: message.links as ThreadMessage["links"],
     createdAt: message.createdAt,
     analysisStatus: message.analysisStatus as ThreadMessage["analysisStatus"],
+    analysisEligibility: normalizeAnalysisEligibilityValue(message.analysisEligibility),
+    analysisExecution: normalizeAnalysisExecutionValue(message.analysisExecution),
+    analysisQuality: normalizeAnalysisQualityValue(message.analysisQuality),
+    suppressionReason: normalizeAnalysisSuppressionReasonValue(message.suppressionReason),
     emotion: message.analysis?.emotion,
     escalationRisk: message.analysis?.escalationRisk,
     isSource: message.ts === data.sourceMessageTs,

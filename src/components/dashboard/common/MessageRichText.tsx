@@ -45,6 +45,10 @@ type SlackToken =
 
 const slackTokenRegex = /<[^>]+>/g;
 const quotedPhraseRegex = /("[^"]+"|\u201c[^\u201d\n]+\u201d)/g;
+const USER_MENTION_ONLY_REGEX = /^(?:\s*<@[A-Z0-9]+>\s*)+$/i;
+const CHANNEL_MENTION_ONLY_REGEX = /^(?:\s*<#[^>]+>\s*)+$/i;
+const LINK_ONLY_REGEX = /^(?:\s*<https?:\/\/[^>]+>\s*)+$/i;
+const REFERENCE_ONLY_REGEX = /^(?:\s*<[^>]+>\s*)+$/i;
 
 function parseSlackToken(
   raw: string,
@@ -79,6 +83,32 @@ function parseSlackToken(
     kind: "reference",
     label: raw.slice(1, -1),
   };
+}
+
+export function describeTokenOnlySlackMessage(text: string): string | null {
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (USER_MENTION_ONLY_REGEX.test(trimmed)) {
+    return "Mention-only ping";
+  }
+
+  if (CHANNEL_MENTION_ONLY_REGEX.test(trimmed)) {
+    return "Channel mention";
+  }
+
+  if (LINK_ONLY_REGEX.test(trimmed)) {
+    return "Link-only message";
+  }
+
+  if (REFERENCE_ONLY_REGEX.test(trimmed)) {
+    return "Reference-only message";
+  }
+
+  return null;
 }
 
 function extractDomain(url: string): string {

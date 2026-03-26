@@ -12,9 +12,20 @@ export function useThreadMessages(
   channelId: string | null,
   threadTs: string | null,
   options?: DashboardQueryConfig,
+  scope: string | null = null,
 ) {
+  const params = new URLSearchParams();
+  if (channelId) {
+    params.set("channelId", channelId);
+  }
+  if (scope) {
+    params.set("scope", scope);
+  }
+
   return useSWR<ThreadConversationData>(
-    threadTs && channelId ? `/api/threads/${threadTs}?channelId=${channelId}` : null,
+    threadTs && channelId
+      ? `/api/threads/${threadTs}?${params.toString()}`
+      : null,
     apiFetch,
     {
       ...resolveDashboardQueryConfig(

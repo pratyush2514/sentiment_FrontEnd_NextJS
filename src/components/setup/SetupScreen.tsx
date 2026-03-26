@@ -16,6 +16,7 @@ import { useChannels, useSession, useWorkspaceStatus } from "@/lib/hooks";
 import { Skeleton, StatusBadge, ChannelPrefix } from "@/components/ui";
 import { relativeTime } from "@/lib/utils/formatters";
 import { ROUTES } from "@/lib/constants";
+import { extractApiErrorMessage } from "@/lib/errors";
 
 const DISCOVERY_SESSION_KEY = "pb_discovery_triggered";
 
@@ -52,7 +53,6 @@ function ChannelListSkeleton() {
   );
 }
 
-
 function DiscoveryProgress() {
   return (
     <div className="rounded-2xl border border-accent/20 bg-accent/5 p-5">
@@ -65,8 +65,8 @@ function DiscoveryProgress() {
             Discovering channels...
           </p>
           <p className="font-body text-sm leading-relaxed text-text-secondary">
-            Scanning your workspace for channels the bot is a member of.
-            This usually takes a few seconds.
+            Scanning your workspace for channels the bot is a member of. This
+            usually takes a few seconds.
           </p>
         </div>
       </div>
@@ -139,13 +139,15 @@ function InviteBotToChannel({ onRescan }: { onRescan: () => void }) {
             Bot is installed in your workspace
           </p>
           <p className="font-body text-sm leading-relaxed text-text-secondary">
-            Invite the bot to a channel to start tracking conversations. In Slack, go to the channel and type:
+            Invite the bot to a channel to start tracking conversations. In
+            Slack, go to the channel and type:
           </p>
           <code className="block rounded-lg bg-bg-tertiary/60 px-3 py-2 font-mono text-xs text-text-primary">
             /invite @PulseBoard
           </code>
           <p className="font-body text-xs text-text-tertiary">
-            This page updates automatically — once the bot joins a channel, tracking starts immediately.
+            This page updates automatically — once the bot joins a channel,
+            tracking starts immediately.
           </p>
           <div className="flex items-center gap-3 pt-1">
             <button
@@ -200,8 +202,9 @@ function SyncChannelsSection({ onSynced }: { onSynced: () => void }) {
               No channels are tracked yet.
             </p>
             <p className="font-body text-sm leading-relaxed text-text-secondary">
-              Click below to discover all channels (public and private) the bot is a member of and start backfilling messages.
-              You can also invite the bot to new channels in Slack — they will be auto-detected.
+              Click below to discover all channels (public and private) the bot
+              is a member of and start backfilling messages. You can also invite
+              the bot to new channels in Slack — they will be auto-detected.
             </p>
           </div>
           {syncError && (
@@ -212,7 +215,11 @@ function SyncChannelsSection({ onSynced }: { onSynced: () => void }) {
             disabled={syncing}
             className="inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/8 px-4 py-2 font-mono text-xs text-accent transition-colors hover:bg-accent/15 disabled:opacity-60"
           >
-            {syncing ? <IconLoader2 size={14} className="animate-spin" /> : <IconRefresh size={14} />}
+            {syncing ? (
+              <IconLoader2 size={14} className="animate-spin" />
+            ) : (
+              <IconRefresh size={14} />
+            )}
             {syncing ? "Syncing..." : "Sync Channels from Slack"}
           </button>
         </div>
@@ -240,8 +247,9 @@ function InstallBotSection({ error }: { error: string | null }) {
           Install PulseBoard to your workspace
         </h1>
         <p className="mt-3 font-body text-sm leading-relaxed text-text-secondary">
-          To start analyzing conversations, PulseBoard needs to be installed as a bot in your Slack workspace.
-          This grants the bot permission to read public and private channel history, view user profiles, and post
+          To start analyzing conversations, PulseBoard needs to be installed as
+          a bot in your Slack workspace. This grants the bot permission to read
+          public and private channel history, view user profiles, and post
           follow-up reminders.
         </p>
       </div>
@@ -252,19 +260,39 @@ function InstallBotSection({ error }: { error: string | null }) {
         </h3>
         <ul className="space-y-2 font-body text-sm text-text-secondary">
           {[
-            { scope: "channels:history", desc: "Read messages in public channels the bot is invited to" },
+            {
+              scope: "channels:history",
+              desc: "Read messages in public channels the bot is invited to",
+            },
             { scope: "channels:read", desc: "View basic channel information" },
-            { scope: "groups:history", desc: "Read messages in private channels the bot is invited to" },
-            { scope: "groups:read", desc: "View private channels the bot is invited to" },
-            { scope: "users:read", desc: "View user display names and profiles" },
+            {
+              scope: "groups:history",
+              desc: "Read messages in private channels the bot is invited to",
+            },
+            {
+              scope: "groups:read",
+              desc: "View private channels the bot is invited to",
+            },
+            {
+              scope: "users:read",
+              desc: "View user display names and profiles",
+            },
             { scope: "team:read", desc: "View workspace information" },
-            { scope: "chat:write", desc: "Send follow-up reminders and notifications" },
-            { scope: "im:write", desc: "Send private follow-up reminders via direct message" },
+            {
+              scope: "chat:write",
+              desc: "Send follow-up reminders and notifications",
+            },
+            {
+              scope: "im:write",
+              desc: "Send private follow-up reminders via direct message",
+            },
           ].map((item) => (
             <li key={item.scope} className="flex items-start gap-2">
               <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent/60" />
               <span>
-                <span className="font-mono text-[11px] text-text-primary">{item.scope}</span>
+                <span className="font-mono text-[11px] text-text-primary">
+                  {item.scope}
+                </span>
                 {" — "}
                 {item.desc}
               </span>
@@ -277,7 +305,9 @@ function InstallBotSection({ error }: { error: string | null }) {
         <div className="flex items-start gap-3 rounded-2xl border border-anger/20 bg-anger/8 p-4">
           <IconAlertTriangle size={18} className="mt-0.5 shrink-0 text-anger" />
           <div>
-            <p className="font-body text-sm font-medium text-text-primary">Installation failed</p>
+            <p className="font-body text-sm font-medium text-text-primary">
+              Installation failed
+            </p>
             <p className="mt-1 font-body text-sm text-text-secondary">
               {error === "install_failed"
                 ? "The bot installation could not be completed. Please try again or contact your Slack workspace admin."
@@ -317,24 +347,45 @@ export function SetupScreen() {
     mutate: mutateWorkspaceStatus,
   } = useWorkspaceStatus();
 
-  const [{ error: installError, installed: justInstalled }] = useState(() => {
+  const [
+    {
+      error: installError,
+      installed: justInstalled,
+      discoveryError: initialDiscoveryError,
+    },
+  ] = useState(() => {
     return {
       error: searchParams.get("error"),
       installed: searchParams.get("installed") === "true",
+      discoveryError:
+        searchParams.get("discovery_error") === "true"
+          ? "Slack channel discovery could not be started automatically. Retry once the backend is healthy."
+          : null,
     };
   });
-  const [discoveryPhase, dispatchDiscovery] = useReducer(discoveryPhaseReducer, "idle");
-  const discoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [discoveryPhase, dispatchDiscovery] = useReducer(
+    discoveryPhaseReducer,
+    "idle",
+  );
+  const [discoveryError, setDiscoveryError] = useState<string | null>(
+    initialDiscoveryError,
+  );
+  const discoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const hasTriggeredDiscovery = useRef(false);
 
   const workspaceName = session.data?.workspaceName ?? "your Slack workspace";
   const isLoading = session.isLoading || workspaceStatusLoading;
   const isWorkspaceStatusUnavailable = Boolean(workspaceStatusError);
   const botInstalled =
-    justInstalled || (!isWorkspaceStatusUnavailable && (workspaceStatusData?.installed ?? false));
+    justInstalled ||
+    (!isWorkspaceStatusUnavailable &&
+      (workspaceStatusData?.installed ?? false));
   const hasChannels = (channels.data?.length ?? 0) > 0;
   const autoDiscovering = discoveryPhase === "discovering";
   const discoveryDone = discoveryPhase === "complete";
+  const visibleDiscoveryError = hasChannels ? null : discoveryError;
   const tokenRotationNotice = getTokenRotationNotice(
     workspaceStatusData?.tokenRotationStatus,
   );
@@ -345,9 +396,52 @@ export function SetupScreen() {
   }, [justInstalled, mutateWorkspaceStatus]);
 
   useEffect(() => {
-    if (!installError && !justInstalled) return;
+    if (!installError && !justInstalled && !initialDiscoveryError) return;
     window.history.replaceState({}, "", window.location.pathname);
-  }, [installError, justInstalled]);
+  }, [initialDiscoveryError, installError, justInstalled]);
+
+  async function triggerWorkspaceDiscovery(options?: {
+    markAttempt?: boolean;
+  }) {
+    if (options?.markAttempt) {
+      hasTriggeredDiscovery.current = true;
+      sessionStorage.setItem(DISCOVERY_SESSION_KEY, Date.now().toString());
+    }
+
+    setDiscoveryError(null);
+    dispatchDiscovery({ type: "start" });
+
+    try {
+      const response = await fetch("/api/channels/sync", { method: "POST" });
+      const payload = (await response.json().catch(() => null)) as unknown;
+      const payloadRecord =
+        payload && typeof payload === "object"
+          ? (payload as Record<string, unknown>)
+          : null;
+
+      if (!response.ok || payloadRecord?.ok === false) {
+        dispatchDiscovery({ type: "stop" });
+        setDiscoveryError(
+          extractApiErrorMessage(
+            payload,
+            "Slack channel discovery could not be started. Retry once the backend is healthy.",
+          ),
+        );
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      dispatchDiscovery({ type: "stop" });
+      setDiscoveryError(
+        extractApiErrorMessage(
+          error,
+          "Slack channel discovery could not be started. Retry once the backend is healthy.",
+        ),
+      );
+      return false;
+    }
+  }
 
   // Auto-discover when bot is installed but no channels found yet
   useEffect(() => {
@@ -358,10 +452,11 @@ export function SetupScreen() {
 
     hasTriggeredDiscovery.current = true;
     sessionStorage.setItem(DISCOVERY_SESSION_KEY, Date.now().toString());
-    dispatchDiscovery({ type: "start" });
+    const timer = window.setTimeout(() => {
+      void triggerWorkspaceDiscovery({ markAttempt: false });
+    }, 0);
 
-    // Trigger queue-based discovery
-    void fetch("/api/channels/sync", { method: "POST" }).catch(() => {});
+    return () => window.clearTimeout(timer);
   }, [botInstalled, hasChannels, isLoading]);
 
   // Clear session flag when channels are found (allow fresh discovery in new session)
@@ -404,8 +499,12 @@ export function SetupScreen() {
     return {
       total: list.length,
       ready: list.filter((channel) => channel.status === "ready").length,
-      initializing: list.filter((channel) => channel.status === "initializing").length,
-      failed: list.filter((channel) => channel.status === "failed" || channel.status === "removed").length,
+      initializing: list.filter((channel) => channel.status === "initializing")
+        .length,
+      failed: list.filter(
+        (channel) =>
+          channel.status === "failed" || channel.status === "removed",
+      ).length,
       pending: list.filter((channel) => channel.status === "pending").length,
     };
   }, [channels.data]);
@@ -426,12 +525,18 @@ export function SetupScreen() {
   }, [session.error, summary.ready]);
 
   // Show install section if bot is not installed
-  const showInstallSection = !isLoading && !isWorkspaceStatusUnavailable && !botInstalled;
+  const showInstallSection =
+    !isLoading && !isWorkspaceStatusUnavailable && !botInstalled;
 
   // Show channel tracking section if bot is installed
-  const showChannelSection = !isLoading && !isWorkspaceStatusUnavailable && botInstalled;
+  const showChannelSection =
+    !isLoading && !isWorkspaceStatusUnavailable && botInstalled;
   const hasFailures = summary.failed > 0;
-  const isWaitingForInvite = showChannelSection && !channels.isLoading && !hasChannels && !autoDiscovering;
+  const isWaitingForInvite =
+    showChannelSection &&
+    !channels.isLoading &&
+    !hasChannels &&
+    !autoDiscovering;
 
   return (
     <div className="w-full max-w-[760px]">
@@ -453,14 +558,19 @@ export function SetupScreen() {
           {!isLoading && isWorkspaceStatusUnavailable && (
             <div className="rounded-2xl border border-anger/20 bg-anger/8 p-5">
               <div className="flex items-start gap-3">
-                <IconAlertTriangle size={18} className="mt-0.5 shrink-0 text-anger" />
+                <IconAlertTriangle
+                  size={18}
+                  className="mt-0.5 shrink-0 text-anger"
+                />
                 <div>
                   <p className="font-body text-sm font-medium text-text-primary">
                     Slack workspace status is temporarily unavailable
                   </p>
                   <p className="mt-1 font-body text-sm leading-relaxed text-text-secondary">
-                    PulseBoard could not verify whether the bot is installed because the backend did not respond cleanly.
-                    This does not mean your workspace was disconnected. Refresh in a moment or confirm the backend is running.
+                    PulseBoard could not verify whether the bot is installed
+                    because the backend did not respond cleanly. This does not
+                    mean your workspace was disconnected. Refresh in a moment or
+                    confirm the backend is running.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -502,7 +612,8 @@ export function SetupScreen() {
                     Preparing {workspaceName}
                   </h1>
                   <p className="mt-3 font-body text-sm leading-relaxed text-text-secondary">
-                    This screen reflects live status. As soon as at least one channel is ready, the dashboard opens automatically.
+                    This screen reflects live status. As soon as at least one
+                    channel is ready, the dashboard opens automatically.
                   </p>
                 </div>
 
@@ -519,7 +630,10 @@ export function SetupScreen() {
                 {[
                   { label: "Tracked", value: summary.total },
                   { label: "Ready", value: summary.ready },
-                  { label: "Initializing", value: summary.initializing + summary.pending },
+                  {
+                    label: "Initializing",
+                    value: summary.initializing + summary.pending,
+                  },
                   { label: "Failed", value: summary.failed },
                 ].map((item) => (
                   <div
@@ -572,35 +686,68 @@ export function SetupScreen() {
                     <IconCheck size={16} className="text-joy" />
                   </div>
                   <p className="font-body text-sm text-text-primary">
-                    At least one channel is ready. Redirecting to the dashboard now.
+                    At least one channel is ready. Redirecting to the dashboard
+                    now.
                   </p>
                 </div>
               )}
 
               {autoDiscovering && !hasChannels && <DiscoveryProgress />}
 
+              {visibleDiscoveryError && (
+                <div className="flex items-start gap-3 rounded-2xl border border-warning/25 bg-warning/8 p-4">
+                  <IconAlertTriangle
+                    size={18}
+                    className="mt-0.5 shrink-0 text-warning"
+                  />
+                  <div>
+                    <p className="font-body text-sm font-medium text-text-primary">
+                      Channel discovery needs attention
+                    </p>
+                    <p className="mt-1 font-body text-sm leading-relaxed text-text-secondary">
+                      {visibleDiscoveryError}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {discoveryDone && !hasChannels && !autoDiscovering && (
-                <InviteBotToChannel onRescan={() => {
-                  dispatchDiscovery({ type: "start" });
-                  sessionStorage.removeItem(DISCOVERY_SESSION_KEY);
-                  void fetch("/api/channels/sync", { method: "POST" }).catch(() => {});
-                  void channels.mutate();
-                }} />
+                <InviteBotToChannel
+                  onRescan={() => {
+                    sessionStorage.removeItem(DISCOVERY_SESSION_KEY);
+                    hasTriggeredDiscovery.current = false;
+                    void triggerWorkspaceDiscovery({ markAttempt: true }).then(
+                      (started) => {
+                        if (started) {
+                          void channels.mutate();
+                        }
+                      },
+                    );
+                  }}
+                />
               )}
 
               {isWaitingForInvite && !discoveryDone && (
-                <SyncChannelsSection onSynced={() => {
-                  dispatchDiscovery({ type: "start" });
-                  hasTriggeredDiscovery.current = true;
-                  void channels.mutate();
-                }} />
+                <SyncChannelsSection
+                  onSynced={() => {
+                    dispatchDiscovery({ type: "start" });
+                    hasTriggeredDiscovery.current = true;
+                    setDiscoveryError(null);
+                    void channels.mutate();
+                  }}
+                />
               )}
 
               {hasFailures && (
                 <div className="flex items-start gap-3 rounded-2xl border border-anger/20 bg-anger/8 p-4">
-                  <IconAlertTriangle size={18} className="mt-0.5 shrink-0 text-anger" />
+                  <IconAlertTriangle
+                    size={18}
+                    className="mt-0.5 shrink-0 text-anger"
+                  />
                   <p className="font-body text-sm leading-relaxed text-text-secondary">
-                    One or more channels failed to initialize or lost bot access. Re-invite the bot or trigger a manual backfill from the backend if the status does not recover.
+                    One or more channels failed to initialize or lost bot
+                    access. Re-invite the bot or trigger a manual backfill from
+                    the backend if the status does not recover.
                   </p>
                 </div>
               )}
@@ -621,7 +768,8 @@ export function SetupScreen() {
                   <ChannelListSkeleton />
                 ) : channels.error ? (
                   <div className="rounded-xl border border-anger/20 bg-anger/8 p-4 font-body text-sm text-text-secondary">
-                    Unable to load channel state. Confirm the backend is running and the app session is valid.
+                    Unable to load channel state. Confirm the backend is running
+                    and the app session is valid.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -632,11 +780,17 @@ export function SetupScreen() {
                       >
                         <div>
                           <p className="font-mono text-sm text-text-primary flex items-center gap-0.5">
-                            <ChannelPrefix type={channel.conversationType} size={12} />{channel.name}
+                            <ChannelPrefix
+                              type={channel.conversationType}
+                              size={12}
+                            />
+                            {channel.name}
                           </p>
                           <p className="mt-1 font-body text-xs text-text-secondary">
                             {channel.messageCount.toLocaleString()} messages
-                            {channel.lastActivity ? ` • last activity ${relativeTime(channel.lastActivity)}` : ""}
+                            {channel.lastActivity
+                              ? ` • last activity ${relativeTime(channel.lastActivity)}`
+                              : ""}
                           </p>
                         </div>
                         <StatusBadge status={channel.status} />

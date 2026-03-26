@@ -2,6 +2,7 @@
  * Server-side utility for proxying API requests to the backend service.
  * Used exclusively inside Next.js API route handlers — never imported client-side.
  */
+import { extractApiErrorMessage } from "./errors";
 
 export class BackendError extends Error {
   constructor(
@@ -80,7 +81,7 @@ export async function backendFetch<T>(
     try {
       const err = (await res.json()) as Record<string, unknown>;
       if (typeof err.error === "string") code = err.error;
-      if (typeof err.message === "string") message = err.message;
+      message = extractApiErrorMessage(err, message);
     } catch {
       // response body was not JSON
     }

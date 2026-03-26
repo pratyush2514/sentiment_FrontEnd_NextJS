@@ -8,7 +8,12 @@ import {
 } from "@tabler/icons-react";
 import { HighlightedText } from "@/components/ui";
 import { relativeTime } from "@/lib/utils/formatters";
-import type { ActiveThread, SentimentTrajectory, ThreadInsight } from "@/lib/types";
+import type {
+  ActiveThread,
+  ProductWindowScope,
+  SentimentTrajectory,
+  ThreadInsight,
+} from "@/lib/types";
 
 interface ActiveThreadsProps {
   channelId: string;
@@ -18,6 +23,7 @@ interface ActiveThreadsProps {
   title?: string;
   countLabel?: string;
   emptyStateMessage?: string;
+  scope?: ProductWindowScope | null;
 }
 
 const TRAJECTORY_CONFIG: Record<
@@ -50,6 +56,7 @@ export function ActiveThreads({
   title = "Surfaced Threads",
   countLabel = "surfaced",
   emptyStateMessage,
+  scope = "active",
 }: ActiveThreadsProps) {
   const resolvedEmptyStateMessage = emptyStateMessage ??
     (isRiskOnlyChannel
@@ -57,23 +64,23 @@ export function ActiveThreads({
       : "No threads are surfaced right now. PulseBoard will show unresolved, risky, or meaningfully changing threads here when they need attention.");
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-secondary/60 p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="font-sans text-xs font-semibold text-text-primary">
+    <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-secondary/60 p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="font-sans text-sm font-semibold text-text-primary">
           {title}
         </h3>
-        <span className="font-mono text-[10px] text-text-tertiary">
+        <span className="font-mono text-xs text-text-tertiary">
           {threads.length} {countLabel}
         </span>
       </div>
       {threads.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border-subtle bg-bg-primary/20 px-3 py-4">
-          <p className="font-body text-xs leading-relaxed text-text-secondary">
+        <div className="rounded-lg border border-dashed border-border-subtle bg-bg-primary/20 px-4 py-5">
+          <p className="font-body text-sm leading-relaxed text-text-secondary">
             {resolvedEmptyStateMessage}
           </p>
         </div>
       ) : (
-        <div className="max-h-[20rem] space-y-2.5 overflow-y-auto pr-1">
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
           {threads.map((t) => {
             const traj = t.sentimentTrajectory
               ? TRAJECTORY_CONFIG[t.sentimentTrajectory]
@@ -83,12 +90,12 @@ export function ActiveThreads({
             return (
               <Link
                 key={t.threadTs}
-                href={`/dashboard/channels/${channelId}/threads/${t.threadTs}`}
-                className="block rounded-lg border border-transparent p-2.5 transition-colors hover:border-border-subtle hover:bg-bg-tertiary/30"
+                href={`/dashboard/channels/${channelId}/threads/${t.threadTs}${scope !== "active" ? `?scope=${scope}` : ""}`}
+                className="block rounded-lg border border-border-subtle/50 bg-bg-primary/30 p-3 transition-all hover:border-border-hover hover:bg-bg-tertiary/30 hover:shadow-sm"
               >
                 <HighlightedText
                   text={t.summary}
-                  className="mb-1.5 block font-body text-xs leading-relaxed text-text-secondary line-clamp-2"
+                  className="mb-2 block font-body text-sm leading-relaxed text-text-secondary line-clamp-2"
                   userMap={userMap}
                 />
                 {t.crucialMessageSummary ? (
@@ -113,30 +120,30 @@ export function ActiveThreads({
                       return (
                         <span
                           key={`${t.threadTs}-${index}`}
-                          className="inline-flex items-center gap-1 rounded-full bg-bg-primary/65 px-2 py-1 font-mono text-[9px] text-text-tertiary"
+                          className="inline-flex items-center gap-1 rounded-full bg-bg-primary/65 px-2 py-1 font-mono text-[10px] text-text-tertiary"
                         >
-                          <Icon size={9} className={insight.type === "crucial" ? "text-anger" : undefined} />
+                          <Icon size={10} className={insight.type === "crucial" ? "text-anger" : undefined} />
                           {insight.label}
                         </span>
                       );
                     })}
                   </div>
                 ) : null}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   {traj && TrajIcon ? (
-                    <span className="flex items-center gap-1 font-mono text-[10px]" style={{ color: traj.color }}>
-                      <TrajIcon size={10} />
+                    <span className="flex items-center gap-1 font-mono text-xs" style={{ color: traj.color }}>
+                      <TrajIcon size={12} />
                       {traj.label}
                     </span>
                   ) : (
-                    <span className="font-mono text-[10px] text-text-tertiary">
+                    <span className="font-mono text-xs text-text-tertiary">
                       Tracking
                     </span>
                   )}
-                  <span className="font-mono text-[10px] text-text-tertiary">
+                  <span className="font-mono text-xs text-text-tertiary">
                     {t.messageCount} msgs
                   </span>
-                  <span className="font-mono text-[10px] text-text-tertiary">
+                  <span className="font-mono text-xs text-text-tertiary">
                     {relativeTime(t.lastActivityAt)}
                   </span>
                 </div>

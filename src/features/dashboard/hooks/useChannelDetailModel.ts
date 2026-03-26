@@ -24,12 +24,18 @@ export function useChannelDetailModel(
     options.initialSelectedParticipantId ?? null,
   );
 
+  const timelineHours =
+    options.scope === "archive"
+      ? 24 * 30
+      : options.scope === "live"
+        ? 24
+        : 24 * 7;
   const refreshPolicy = useRealtimeRefreshPolicy("channel");
   const queryConfig = toDashboardQueryConfig(refreshPolicy);
   const channelsQuery = useChannels(queryConfig);
   const stateQuery = useChannelState(channelId, queryConfig);
-  const timelineQuery = useTimeline(channelId, 168, queryConfig);
-  const threadsQuery = useThreads(channelId, queryConfig);
+  const timelineQuery = useTimeline(channelId, timelineHours, queryConfig, options.scope);
+  const threadsQuery = useThreads(channelId, queryConfig, options.scope);
 
   const channel = channelsQuery.data?.find((entry) => entry.id === channelId);
   const state = stateQuery.data;

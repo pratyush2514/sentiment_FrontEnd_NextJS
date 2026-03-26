@@ -14,8 +14,10 @@ import { PeopleConversationPanel } from "@/components/dashboard/channel/PeopleCo
 import { RecentIncidents } from "@/components/dashboard/channel/RecentIncidents";
 import { RunningSummary } from "@/components/dashboard/channel/RunningSummary";
 import { SentimentTimeline } from "@/components/charts/SentimentTimeline";
+import { ChannelMeetingsSection } from "@/components/dashboard/meetings/ChannelMeetingsSection";
 import { Skeleton } from "@/components/ui";
 import { useChannelDetailJobs, useChannelDetailModel } from "@/features/dashboard";
+import type { ProductWindowScope } from "@/lib/types";
 
 export default function ChannelDetailPage({
   params,
@@ -26,9 +28,13 @@ export default function ChannelDetailPage({
   const searchParams = useSearchParams();
   const openConversation = searchParams.get("conversation") === "1";
   const highlightedMessageTs = searchParams.get("messageTs");
+  const scopeParam = searchParams.get("scope");
+  const scope: ProductWindowScope =
+    scopeParam === "archive" || scopeParam === "live" ? scopeParam : "active";
   const model = useChannelDetailModel(id, {
     openConversation,
     highlightedMessageTs,
+    scope,
   });
   const jobs = useChannelDetailJobs({
     channelId: id,
@@ -65,13 +71,15 @@ export default function ChannelDetailPage({
           model.state.riskDrivers.some((driver) => driver.category === "operational")
         ),
     );
+  const archiveHref = `/dashboard/channels/${id}?scope=archive`;
+  const recentHref = `/dashboard/channels/${id}`;
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-1.5 font-mono text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+        className="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-secondary/50 px-3 py-2 font-sans text-sm text-text-secondary hover:text-text-primary hover:bg-bg-secondary/80 transition-all"
       >
-        <IconArrowLeft size={12} />
+        <IconArrowLeft size={14} />
         Back to overview
       </Link>
 
@@ -87,6 +95,34 @@ export default function ChannelDetailPage({
           state={model.state}
           conversationType={model.conversationType}
         />
+      )}
+
+      {scope === "archive" ? (
+        <div className="flex flex-col gap-2 rounded-xl border border-border-subtle bg-bg-secondary/40 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-wider text-text-secondary font-medium">
+              Viewing older context
+            </p>
+            <p className="mt-1.5 font-body text-sm leading-relaxed text-text-tertiary">
+              The summary and health state stay focused on the last 7 days. Threads and timeline below now include up to 30 days of archived Slack context.
+            </p>
+          </div>
+          <Link
+            href={recentHref}
+            className="shrink-0 rounded-lg border border-border-subtle bg-bg-primary px-3 py-2 font-sans text-xs text-text-secondary transition-all hover:text-text-primary hover:bg-bg-secondary/80 hover:shadow-sm"
+          >
+            Back to recent view
+          </Link>
+        </div>
+      ) : (
+        <div className="flex justify-end">
+          <Link
+            href={archiveHref}
+            className="rounded-lg border border-border-subtle bg-bg-secondary/40 px-3 py-2 font-sans text-xs text-text-secondary transition-all hover:text-text-primary hover:bg-bg-secondary/80 hover:shadow-sm"
+          >
+            Show older context →
+          </Link>
+        </div>
       )}
 
       {(isChannelSettingUp || isChannelFailed || isChannelRemoved) && (
@@ -166,6 +202,7 @@ export default function ChannelDetailPage({
               threads={model.activeThreads}
               userMap={model.userMap}
               isRiskOnlyChannel={isRiskOnlyChannel}
+              scope={scope}
             />
             {shouldShowRecentThreadsFallback ? (
               <ActiveThreads
@@ -175,6 +212,7 @@ export default function ChannelDetailPage({
                 title="Recent Threads"
                 countLabel="recent"
                 emptyStateMessage="No recent threads were found in the current window."
+                scope={scope}
               />
             ) : null}
           </div>
@@ -201,7 +239,10 @@ export default function ChannelDetailPage({
 
         {shouldShowKeyDecisions ? (
           <div className="min-w-0 lg:col-start-1">
-            <KeyDecisions decisions={model.state?.keyDecisions ?? []} />
+            <KeyDecisions
+              channelId={id}
+              decisions={model.state?.keyDecisions ?? []}
+            />
           </div>
         ) : null}
 
@@ -221,9 +262,14 @@ export default function ChannelDetailPage({
               channelId={id}
               userMap={model.userMap}
               isRiskOnlyChannel={isRiskOnlyChannel}
+              scope={scope}
             />
           </div>
         ) : null}
+
+        <div className="min-w-0 lg:col-start-1">
+          <ChannelMeetingsSection channelId={id} />
+        </div>
       </div>
     </div>
   );

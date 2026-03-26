@@ -48,7 +48,7 @@ export function ActionInboxSection({ channels }: ActionInboxSectionProps) {
   const queryConfig = toDashboardQueryConfig(refreshPolicy);
   const followUpActions = useFollowUpActions();
 
-  const { data: inbox, isLoading: inboxLoading } = useInbox({
+  const { data: inbox, isLoading: inboxLoading, error: inboxError } = useInbox({
     limit: 120,
     group: groupFilter,
     severity: severityFilter,
@@ -159,6 +159,16 @@ export function ActionInboxSection({ channels }: ActionInboxSectionProps) {
           {Array.from({ length: 3 }).map((_, idx) => (
             <Skeleton key={idx} className="h-36 rounded-2xl" />
           ))}
+        </div>
+      ) : inboxError ? (
+        <div className="rounded-xl border border-warning/25 bg-warning/8 px-6 py-10 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-warning/10 border border-warning/25">
+            <IconInbox size={18} className="text-warning" />
+          </div>
+          <h3 className="font-sans text-sm font-semibold text-text-primary">Inbox data unavailable</h3>
+          <p className="mt-1 font-body text-xs text-text-tertiary">
+            PulseBoard could not verify the current follow-up queue. Refresh once the backend is responding again.
+          </p>
         </div>
       ) : groupedItems.length === 0 ? (
         <div className="rounded-xl border border-border-subtle bg-bg-secondary/30 px-6 py-10 text-center">

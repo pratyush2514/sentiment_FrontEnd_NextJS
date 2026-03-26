@@ -42,7 +42,7 @@ export function Sidebar({
       </div>
 
       <div className="flex flex-col gap-0 flex-1 overflow-y-auto py-3">
-        <nav className="px-2 space-y-0.5 mb-4">
+        <nav className="px-2 space-y-1 mb-5">
           {DASHBOARD_NAV_ITEMS.map((item) => {
             const active = item.isActive(pathname);
             const Icon = item.icon;
@@ -56,21 +56,24 @@ export function Sidebar({
                 <Link
                   href={item.href}
                   className={[
-                    "group flex w-full items-center gap-3 rounded-md px-2.5 py-2 transition-colors duration-150",
+                    "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200",
                     collapsed
                       ? "justify-center"
                       : "md:justify-center lg:justify-start",
                     active
-                      ? "bg-accent/8 text-accent"
-                      : "text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/40",
+                      ? "bg-accent/10 text-accent font-medium shadow-sm"
+                      : "text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/50",
                   ].join(" ")}
                 >
-                  <Icon size={16} className="shrink-0" />
+                  {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-accent" />
+                  )}
+                  <Icon size={18} className="shrink-0" />
                   <span
                     className={
                       collapsed
                         ? "hidden"
-                        : "hidden lg:inline font-body text-xs"
+                        : "hidden lg:inline font-sans text-sm"
                     }
                   >
                     {item.label}
@@ -83,7 +86,7 @@ export function Sidebar({
 
         {channels.length > 0 && (
           <div className="px-3">
-            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-tertiary mb-2 px-0.5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-tertiary mb-2.5 px-0.5 font-medium">
               <span className={collapsed ? "hidden" : "hidden lg:inline"}>
                 Channels
               </span>
@@ -126,7 +129,7 @@ export function Sidebar({
                         className={
                           collapsed
                             ? "hidden"
-                            : "hidden lg:inline font-mono text-[11px] truncate flex items-center gap-0.5"
+                            : "hidden lg:inline font-mono text-xs truncate flex items-center gap-0.5"
                         }
                       >
                         <ChannelPrefix type={ch.conversationType} size={10} />
@@ -148,10 +151,10 @@ export function Sidebar({
 
         {/* QUEUE section */}
         {alertCount > 0 && (
-          <div className="px-3 mt-4">
-            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-tertiary mb-2 px-0.5">
+          <div className="px-3 mt-5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-tertiary mb-2.5 px-0.5 font-medium">
               <span className={collapsed ? "hidden" : "hidden lg:inline"}>
-                Alert
+                Alerts
               </span>
             </p>
             <Link

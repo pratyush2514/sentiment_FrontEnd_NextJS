@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { toDisplayErrorMessage } from "@/lib/errors";
 
 export default function DashboardError({
   error,
@@ -9,9 +9,10 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error("Dashboard error:", error);
-  }, [error]);
+  const message = toDisplayErrorMessage(
+    error,
+    "An unexpected error occurred while loading the dashboard.",
+  );
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
@@ -19,7 +20,7 @@ export default function DashboardError({
         Something went wrong
       </h2>
       <p className="max-w-md font-mono text-sm text-text-tertiary">
-        {error.message || "An unexpected error occurred while loading the dashboard."}
+        {message}
       </p>
       <button
         onClick={reset}

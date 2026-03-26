@@ -99,7 +99,7 @@ const SSE_EVENT_TYPES: SSEEventType[] = [
   "message_ingested",
 ];
 
-const BUFFERED_REVALIDATE_MS = 2 * 60 * 1000;
+const BUFFERED_REVALIDATE_MS = 5_000;
 
 function isThreadDetailKey(key: unknown, channelId: string): boolean {
   return (
@@ -159,6 +159,7 @@ export function useSSE(url: string, onEvent?: SSEHandler) {
   const dirtyBucketsRef = useRef<Set<DirtyBucket>>(new Set());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFlushRef = useRef(0);
+  const flushDirtyRef = useRef<() => void>(() => {});
   const scheduleFlushRef = useRef<() => void>(() => {});
   const handleEventRef = useRef<(event: SSEEvent) => void>(() => {});
 
@@ -295,6 +296,10 @@ export function useSSE(url: string, onEvent?: SSEHandler) {
         scheduleFlushRef.current();
       }
     }, BUFFERED_REVALIDATE_MS);
+  }, [flushDirty]);
+
+  useEffect(() => {
+    flushDirtyRef.current = flushDirty;
   }, [flushDirty]);
 
   useEffect(() => {
@@ -550,18 +555,43 @@ export function useSSE(url: string, onEvent?: SSEHandler) {
     const source = new EventSource(url);
 
     source.onopen = () => {
-      setConnectionState("connected");
-      // Post-reconnection recovery: flush all dirty buckets immediately
-      if (wasConnected && dirtyBucketsRef.current.size > 0) {
-        if (flushTimerRef.current) {
-          clearTimeout(flushTimerRef.current);
-          flushTimerRef.current = null;
-        }
-        // Use scheduleFlushRef to avoid stale closures
-        scheduleFlushRef.current();
-      }
-      wasConnected = true;
+      setConnectionState("reconnecting");
     };
+
+    source.addEventListener("connected", (rawEvent: MessageEvent) => {
+      try {
+        const payload = JSON.parse(rawEvent.data as string) as Record<
+          string,
+          unknown
+        >;
+        if (typeof payload.workspaceId !== "string") {
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("PulseBoard SSE connected event missing workspaceId");
+          }
+          return;
+        }
+
+        setConnectionState("connected");
+        if (wasConnected && dirtyBucketsRef.current.size > 0) {
+          if (flushTimerRef.current) {
+            clearTimeout(flushTimerRef.current);
+            flushTimerRef.current = null;
+          }
+          flushDirtyRef.current();
+          if (dirtyBucketsRef.current.size > 0) {
+            scheduleFlushRef.current();
+          }
+        }
+        wasConnected = true;
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(
+            "PulseBoard SSE connected event could not be parsed",
+            error,
+          );
+        }
+      }
+    });
 
     for (const type of SSE_EVENT_TYPES) {
       source.addEventListener(type, (rawEvent: MessageEvent) => {
@@ -576,11 +606,19 @@ export function useSSE(url: string, onEvent?: SSEHandler) {
             !SSE_EVENT_TYPES.includes(payload.type as SSEEventType) ||
             typeof payload.channelId !== "string"
           ) {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn(
+                "PulseBoard SSE event ignored because it failed validation",
+                payload,
+              );
+            }
             return;
           }
           handleEventRef.current(payload as unknown as SSEEvent);
         } catch {
-          // Ignore malformed event payloads and wait for the next reconnect/update.
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("PulseBoard SSE event could not be parsed");
+          }
         }
       });
     }

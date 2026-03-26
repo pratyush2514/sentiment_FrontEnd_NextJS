@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
   const tokenResponse = await exchangeCodeForToken(code, installRedirectUri);
 
   if (!tokenResponse.ok || !tokenResponse.access_token) {
-    console.error("[install-callback] Slack token exchange failed:", tokenResponse.error);
     return NextResponse.redirect(
       new URL(`${ROUTES.SETUP}?error=token_exchange_failed`, baseUrl),
     );
@@ -61,7 +60,6 @@ export async function GET(request: NextRequest) {
   const installerUserId = tokenResponse.authed_user?.id;
 
   if (!workspaceId) {
-    console.error("[install-callback] No team_id in token response");
     return NextResponse.redirect(
       new URL(`${ROUTES.CONNECT}?error=missing_workspace`, baseUrl),
     );
@@ -88,8 +86,7 @@ export async function GET(request: NextRequest) {
       workspaceId,
       body: installPayload,
     });
-  } catch (err) {
-    console.error("[install-callback] Backend install failed:", err);
+  } catch {
     return NextResponse.redirect(
       new URL(`${ROUTES.SETUP}?error=install_failed`, baseUrl),
     );

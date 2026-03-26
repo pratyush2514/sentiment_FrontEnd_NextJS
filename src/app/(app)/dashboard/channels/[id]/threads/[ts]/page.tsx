@@ -18,12 +18,14 @@ export default function ThreadDetailPage({
   const { id, ts } = use(params);
   const searchParams = useSearchParams();
   const highlightedMessageTs = searchParams.get("messageTs");
-  const model = useThreadDetailModel(id, ts, { highlightedMessageTs });
+  const scope = searchParams.get("scope");
+  const model = useThreadDetailModel(id, ts, { highlightedMessageTs, scope });
   const [showFullHistory, setShowFullHistory] = useState(Boolean(highlightedMessageTs));
   const shouldShowFullHistory = useMemo(
     () => showFullHistory || Boolean(highlightedMessageTs),
     [highlightedMessageTs, showFullHistory],
   );
+  const backHref = `/dashboard/channels/${id}${scope && scope !== "active" ? `?scope=${scope}` : ""}`;
 
   useEffect(() => {
     if (!highlightedMessageTs || !model.messages || model.messages.length === 0) {
@@ -42,13 +44,13 @@ export default function ThreadDetailPage({
   }, [highlightedMessageTs, model.messages]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <Link
-        href={`/dashboard/channels/${id}`}
-        className="inline-flex items-center gap-1.5 font-mono text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+        href={backHref}
+        className="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-secondary/50 px-3 py-2 font-sans text-sm text-text-secondary hover:text-text-primary hover:bg-bg-secondary/80 transition-all"
       >
-        <IconArrowLeft size={12} />
-        Back to <ChannelPrefix type={model.conversationType} size={10} />{model.channelName}
+        <IconArrowLeft size={14} />
+        Back to <ChannelPrefix type={model.conversationType} size={12} />{model.channelName}
       </Link>
 
       {model.thread ? (
@@ -83,24 +85,24 @@ export default function ThreadDetailPage({
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-border-subtle bg-bg-secondary/60 p-5">
+      <div className="rounded-xl border border-border-subtle bg-bg-secondary/60 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="font-sans text-sm font-semibold text-text-primary">
+            <h2 className="font-sans text-base font-semibold text-text-primary">
               Full Thread History
             </h2>
-            <p className="mt-1 font-body text-xs text-text-tertiary">
-              Summary and surfaced moments come first. Expand the full history only when you want to verify context or inspect the routine back-and-forth.
+            <p className="mt-1.5 font-body text-sm text-text-tertiary leading-relaxed">
+              Summary and surfaced moments come first. Expand the full history to verify context or inspect the back-and-forth.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowFullHistory((current) => !current)}
-            className="inline-flex items-center gap-1 rounded-full border border-border-subtle/70 px-3 py-1.5 font-mono text-[10px] text-text-tertiary transition-colors hover:text-text-secondary"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-primary px-4 py-2 font-sans text-xs font-medium text-text-secondary transition-all hover:text-text-primary hover:bg-bg-secondary/80 hover:shadow-sm"
             aria-expanded={shouldShowFullHistory}
           >
             <IconChevronDown
-              size={12}
+              size={13}
               className={`transition-transform duration-200 ${shouldShowFullHistory ? "rotate-180" : ""}`}
             />
             {shouldShowFullHistory ? "Hide full history" : "View full history"}
@@ -127,7 +129,7 @@ export default function ThreadDetailPage({
                 No messages in this thread.
               </p>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-1">
                 {model.messages.map((message) => (
                   <ThreadMessageCard
                     key={message.id}

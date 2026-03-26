@@ -11,9 +11,9 @@ const colors: Record<SSEConnectionState, string> = {
 };
 
 const labels: Record<SSEConnectionState, string> = {
-  connected: "Live",
+  connected: "Connected",
   reconnecting: "Reconnecting...",
-  disconnected: "Disconnected",
+  disconnected: "Offline",
 };
 
 export function SSEIndicator() {

@@ -21,7 +21,7 @@ const CHANNEL_SORTS: { label: string; value: string }[] = [
   { label: "Last activity", value: "activity" },
   { label: "Risk level", value: "risk" },
   { label: "Alphabetical", value: "alpha" },
-  { label: "Message count", value: "messages" },
+  { label: "Recent messages", value: "messages" },
 ];
 
 const HEALTH_RISK_ORDER: Record<ChannelHealth, number> = {
@@ -40,7 +40,7 @@ function sortChannels(channels: ChannelCardData[], sort: ChannelSort): ChannelCa
       case "alpha":
         return a.name.localeCompare(b.name);
       case "messages":
-        return b.messageCount - a.messageCount;
+        return (b.activeMessageCount ?? b.messageCount) - (a.activeMessageCount ?? a.messageCount);
       default:
         return 0;
     }
@@ -50,9 +50,14 @@ function sortChannels(channels: ChannelCardData[], sort: ChannelSort): ChannelCa
 interface ChannelHealthSectionProps {
   channels: ChannelCardData[] | undefined;
   isLoading: boolean;
+  isUnavailable?: boolean;
 }
 
-export function ChannelHealthSection({ channels, isLoading }: ChannelHealthSectionProps) {
+export function ChannelHealthSection({
+  channels,
+  isLoading,
+  isUnavailable = false,
+}: ChannelHealthSectionProps) {
   const [channelSearch, setChannelSearch] = useState("");
   const [healthFilter, setHealthFilter] = useState<ChannelHealth | "all">("all");
   const [channelSort, setChannelSort] = useState<ChannelSort>("activity");
@@ -77,16 +82,23 @@ export function ChannelHealthSection({ channels, isLoading }: ChannelHealthSecti
   return (
     <section>
       {/* Header row */}
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="font-sans text-sm font-semibold text-text-primary">
-            Channel Health
-          </h2>
+          <div>
+            <h2 className="font-sans text-base font-semibold text-text-primary">
+              Channel Health
+            </h2>
+            <p className="font-body text-xs text-text-tertiary mt-0.5">
+              Monitor the health status of your connected Slack channels
+            </p>
+          </div>
           {isLoading ? (
             <Skeleton className="h-3.5 w-20" />
           ) : (
-            <span className="font-mono text-badge text-text-tertiary">
-              {filteredChannels.length} of {channels?.length ?? 0} channel{channels?.length === 1 ? "" : "s"}
+            <span className="font-mono text-xs text-text-tertiary">
+              {isUnavailable
+                ? "Data unavailable"
+                : `${filteredChannels.length} of ${channels?.length ?? 0} channel${channels?.length === 1 ? "" : "s"}`}
             </span>
           )}
         </div>
@@ -118,7 +130,11 @@ export function ChannelHealthSection({ channels, isLoading }: ChannelHealthSecti
         ))}
       </div>
 
-      <ChannelGrid channels={displayedChannels} isLoading={isLoading} />
+      <ChannelGrid
+        channels={displayedChannels}
+        isLoading={isLoading}
+        isUnavailable={isUnavailable}
+      />
 
       {hasMoreChannels && (
         <button

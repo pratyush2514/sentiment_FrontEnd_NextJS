@@ -18,6 +18,14 @@ const DEFAULT_POLLING_INTERVALS: Record<RealtimeRefreshScope, number> = {
   settings: 60_000,
 };
 
+const CONNECTED_BACKSTOP_INTERVALS: Record<RealtimeRefreshScope, number> = {
+  overview: 45_000,
+  channel: 30_000,
+  thread: 30_000,
+  inbox: 30_000,
+  settings: 60_000,
+};
+
 export function useRealtimeRefreshPolicy(
   scope: RealtimeRefreshScope,
   options: UseRealtimeRefreshPolicyOptions = {},
@@ -31,20 +39,20 @@ export function useRealtimeRefreshPolicy(
     revalidateOnFocus = false,
     refreshWhenHidden = false,
   } = options;
+  const connectedRefreshInterval = Math.max(
+    liveRefreshInterval,
+    CONNECTED_BACKSTOP_INTERVALS[scope],
+  );
 
   return useMemo(() => {
     const live = enabled && connectionState === "connected";
-    const liveFallbackInterval =
-      liveRefreshInterval > 0
-        ? liveRefreshInterval
-        : Math.max(60_000, pollingRefreshInterval * 4);
 
     return {
       scope,
       connectionState,
       live,
       refreshInterval: live
-        ? liveFallbackInterval
+        ? connectedRefreshInterval
         : enabled
           ? pollingRefreshInterval
           : 0,
@@ -54,10 +62,10 @@ export function useRealtimeRefreshPolicy(
       refreshWhenHidden,
     };
   }, [
+    connectedRefreshInterval,
     connectionState,
     dedupingInterval,
     enabled,
-    liveRefreshInterval,
     pollingRefreshInterval,
     revalidateOnFocus,
     refreshWhenHidden,

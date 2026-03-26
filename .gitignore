@@ -47,8 +47,7 @@ storybook-static
 
 certificates
 
-
-./claude/**
-./claude-*/
 .claude/**
+/.claude-*/
+.claude/
 

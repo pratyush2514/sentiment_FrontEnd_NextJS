@@ -16,6 +16,7 @@ export async function GET(
   }
 
   const hours = Math.max(1, parseInt(searchParams.get("hours") ?? "168", 10));
+  const scope = searchParams.get("scope");
 
   try {
     const now = new Date();
@@ -26,6 +27,9 @@ export async function GET(
       from: from.toISOString(),
       to: now.toISOString(),
     });
+    if (scope) {
+      query.set("scope", scope);
+    }
 
     const raw = await backendFetch<BackendTimelineResponse>(
       `/api/channels/${encodeURIComponent(id)}/timeline?${query.toString()}`,

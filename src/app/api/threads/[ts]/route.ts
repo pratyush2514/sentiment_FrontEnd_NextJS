@@ -12,6 +12,7 @@ export async function GET(
 ) {
   const { ts } = await params;
   const channelId = request.nextUrl.searchParams.get("channelId");
+  const scope = request.nextUrl.searchParams.get("scope") ?? "archive";
   const auth = await requireAppSession(request);
 
   if ("response" in auth) {
@@ -29,6 +30,7 @@ export async function GET(
     const query = new URLSearchParams({
       threadTs: ts,
       limit: "50",
+      scope,
     });
 
     const raw = await backendFetch<BackendMessagesResponse>(

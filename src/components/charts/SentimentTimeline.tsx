@@ -98,9 +98,9 @@ function CustomTooltip({
             <span className="font-mono text-[10px] text-text-primary">{point.activity}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="font-mono text-[10px] text-text-secondary">AI confidence</span>
+            <span className="font-mono text-[10px] text-text-secondary">Analysis signal</span>
             <span className="font-mono text-[10px] text-text-primary">
-              {Math.round(point.avgConfidence * 100)}%
+              {confidenceBand(point.avgConfidence)}
             </span>
           </div>
         </div>
@@ -136,6 +136,12 @@ function CustomTooltip({
 
 function formatCompactPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
+}
+
+function confidenceBand(value: number): string {
+  if (value >= 0.9) return "Strong";
+  if (value >= 0.75) return "Moderate";
+  return "Light";
 }
 
 function getDominantMood(
@@ -277,7 +283,7 @@ export function SentimentTimeline({ data, isLoading, healthCounts }: SentimentTi
                 {summary.dominantMood.label} &middot; <span className="text-text-primary">{summary.dominantMood.tone}</span>
               </span>
               <span className="font-mono text-[10px] text-text-secondary">
-                Confidence: <span className="text-text-primary font-semibold">{formatCompactPercent(summary.weightedConfidence)}</span>
+                Analysis signal: <span className="text-text-primary font-semibold">{confidenceBand(summary.weightedConfidence)}</span>
               </span>
             </div>
           )}

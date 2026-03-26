@@ -1,3 +1,5 @@
+import { extractApiErrorMessage } from "./errors";
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -12,10 +14,9 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
     if (res.status === 401 && typeof window !== "undefined" && !url.includes("/api/session")) {
       window.location.replace("/connect");
     }
-    let message = `API error: ${res.status}`;
+    let message = `Request failed (${res.status})`;
     try {
-      const err = await res.json();
-      if (typeof err.error === "string") message = err.error;
+      message = extractApiErrorMessage(await res.json(), message);
     } catch {
       // response body was not JSON
     }
@@ -23,7 +24,15 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   }
   const json = await res.json();
   if (json.ok === false) {
-    throw new ApiError(res.status || 500, json.error ?? "Unknown API error");
+    throw new ApiError(
+      res.status || 500,
+      extractApiErrorMessage(json, "Request failed"),
+    );
   }
-  return json.data as T;
+
+  if (json && typeof json === "object" && "data" in json) {
+    return (json as { data: T }).data;
+  }
+
+  return json as T;
 }

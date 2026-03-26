@@ -15,8 +15,13 @@ export async function GET(
   }
 
   try {
+    const query = new URLSearchParams();
+    const scope = request.nextUrl.searchParams.get("scope");
+    if (scope) {
+      query.set("scope", scope);
+    }
     const raw = await backendFetch<BackendThreadsResponse>(
-      `/api/channels/${encodeURIComponent(id)}/threads`,
+      `/api/channels/${encodeURIComponent(id)}/threads${query.toString() ? `?${query.toString()}` : ""}`,
       { workspaceId: auth.session.workspaceId },
     );
     const data = transformThreads(raw);

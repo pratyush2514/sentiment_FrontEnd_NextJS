@@ -12,10 +12,14 @@ export function useTimeline(
   channelId: string | null,
   hours = 168,
   options?: DashboardQueryConfig,
+  scope?: string | null,
 ) {
   const params = new URLSearchParams({
     hours: String(hours),
   });
+  if (scope) {
+    params.set("scope", scope);
+  }
 
   return useSWR<TimelineDataPoint[]>(
     channelId ? `/api/channels/${channelId}/timeline?${params.toString()}` : null,

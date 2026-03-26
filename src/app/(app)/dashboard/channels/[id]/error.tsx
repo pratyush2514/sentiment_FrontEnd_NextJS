@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { toDisplayErrorMessage } from "@/lib/errors";
 
 export default function ChannelError({
   error,
@@ -10,9 +10,10 @@ export default function ChannelError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error("Channel error:", error);
-  }, [error]);
+  const message = toDisplayErrorMessage(
+    error,
+    "An unexpected error occurred while loading channel data.",
+  );
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
@@ -20,7 +21,7 @@ export default function ChannelError({
         Failed to load channel
       </h2>
       <p className="max-w-md font-mono text-sm text-text-tertiary">
-        {error.message || "An unexpected error occurred while loading channel data."}
+        {message}
       </p>
       <div className="flex gap-3">
         <button

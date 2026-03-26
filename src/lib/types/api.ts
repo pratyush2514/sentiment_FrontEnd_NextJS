@@ -5,6 +5,12 @@ import type {
   ThreadInsight,
   ThreadInsightSummary,
 } from "./channel";
+import type {
+  AnalysisEligibility,
+  AnalysisExecution,
+  AnalysisQuality,
+  AnalysisSuppressionReason,
+} from "./message";
 import type { InteractionTone } from "./sentiment";
 
 export interface WorkspaceOverview {
@@ -27,6 +33,7 @@ export interface WorkspaceStatusResponse {
   botUserId: string | null;
   scopes: string[];
   tokenRotationStatus?: TokenRotationStatus;
+  canDisconnect?: boolean;
   botTokenExpiresAt?: string | null;
   lastTokenRefreshAt?: string | null;
   lastTokenRefreshError?: string | null;
@@ -261,6 +268,10 @@ export interface AlertContextMessage {
   links?: import("./channel").SlackLinkAttachment[];
   createdAt: string | null;
   analysisStatus?: "pending" | "processing" | "completed" | "failed" | "skipped";
+  analysisEligibility?: AnalysisEligibility | null;
+  analysisExecution?: AnalysisExecution | null;
+  analysisQuality?: AnalysisQuality | null;
+  suppressionReason?: AnalysisSuppressionReason | null;
   emotion?: string;
   interactionTone?: InteractionTone | null;
   escalationRisk?: "low" | "medium" | "high";

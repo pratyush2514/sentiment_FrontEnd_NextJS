@@ -1,7 +1,9 @@
 import {
   IconBell,
+  IconChecklist,
   IconLayoutDashboard,
   IconSettings,
+  IconVideo,
   type Icon,
 } from "@tabler/icons-react";
 
@@ -25,6 +27,18 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: "/dashboard/alerts",
     icon: IconBell,
     isActive: (pathname: string) => pathname.startsWith("/dashboard/alerts"),
+  },
+  {
+    label: "Meetings",
+    href: "/dashboard/meetings",
+    icon: IconVideo,
+    isActive: (pathname: string) => pathname.startsWith("/dashboard/meetings"),
+  },
+  {
+    label: "Commitments",
+    href: "/dashboard/commitments",
+    icon: IconChecklist,
+    isActive: (pathname: string) => pathname.startsWith("/dashboard/commitments"),
   },
   {
     label: "Settings",

@@ -156,12 +156,18 @@ export function WorkspaceSentimentChart({
   if (!data || data.length === 0) {
     return (
       <div className="rounded-xl bg-bg-secondary/50 border border-border-subtle p-5">
-        <h3 className="mb-4 font-sans text-sm font-semibold text-text-primary">
+        <h3 className="font-sans text-sm font-semibold text-text-primary">
           Sentiment Timeline
         </h3>
-        <div className="flex h-[140px] items-center justify-center rounded-lg border border-border-subtle bg-bg-primary/30">
+        <p className="font-body text-xs text-text-tertiary mt-0.5 mb-4">
+          Composite sentiment score over time across your workspace
+        </p>
+        <div className="flex h-[100px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border-subtle bg-bg-primary/20">
+          <p className="font-sans text-sm text-text-secondary">
+            No trend data yet
+          </p>
           <p className="font-body text-xs text-text-tertiary">
-            No trend data yet — activity will appear after messages are analyzed.
+            Sentiment trends will appear here as messages are analyzed
           </p>
         </div>
       </div>
@@ -171,11 +177,16 @@ export function WorkspaceSentimentChart({
   return (
     <div className="rounded-xl bg-bg-secondary/50 border border-border-subtle p-4">
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-sans text-sm font-semibold text-text-primary">
-          Sentiment Timeline
-        </h3>
-        <div className="flex items-center gap-4">
+      <div className="mb-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-sans text-sm font-semibold text-text-primary">
+              Sentiment Timeline
+            </h3>
+            <p className="font-body text-xs text-text-tertiary mt-0.5">
+              Composite sentiment score over time across your workspace
+            </p>
+          </div>
           {/* Time range selector */}
           {trendRanges && onTrendRangeChange && (
             <div className="flex items-center gap-0.5 rounded-lg bg-bg-tertiary/40 p-0.5">
@@ -187,9 +198,9 @@ export function WorkspaceSentimentChart({
                   aria-label={`Show ${r.label} trend`}
                   aria-pressed={trendRange === r.value}
                   className={[
-                    "rounded-md px-2 py-0.5 font-mono text-[10px] transition-colors",
+                    "rounded-md px-2.5 py-1 font-mono text-xs transition-colors",
                     trendRange === r.value
-                      ? "bg-bg-primary text-text-primary shadow-sm"
+                      ? "bg-bg-primary text-text-primary shadow-sm font-medium"
                       : "text-text-tertiary hover:text-text-secondary",
                   ].join(" ")}
                 >
@@ -198,14 +209,16 @@ export function WorkspaceSentimentChart({
               ))}
             </div>
           )}
+        </div>
+        <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-accent" />
-            <span className="font-mono text-[10px] text-text-tertiary">Score</span>
+            <span className="font-mono text-xs text-text-tertiary">Score</span>
           </span>
           {alertZones.length > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded" style={{ backgroundColor: "color-mix(in srgb, var(--theme-status-error) 35%, transparent)" }} />
-              <span className="font-mono text-[10px] text-text-tertiary">Alert zone</span>
+              <span className="font-mono text-xs text-text-tertiary">Alert zone</span>
             </span>
           )}
         </div>

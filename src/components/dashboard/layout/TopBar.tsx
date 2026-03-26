@@ -137,32 +137,40 @@ export function TopBar({
         </button>
 
         <nav aria-label="Breadcrumb">
-          <ol className="flex items-center gap-1.5">
-            {segments.map((segment, index) => (
+          <ol className="flex items-center gap-2">
+            {segments.map((segment, index) => {
+              const isLast = index === segments.length - 1;
+              const isSeparator = segment.label === "/";
+              return (
               <li key={index}>
-                {segment.href ? (
+                {isSeparator ? (
+                  <span className="text-text-tertiary/60 select-none font-mono text-xs">›</span>
+                ) : segment.href ? (
                   <Link
                     href={segment.href}
-                    className="font-mono text-sm text-text-tertiary hover:text-text-secondary transition-colors flex items-center gap-0.5"
+                    className="font-sans text-sm text-text-tertiary hover:text-text-primary transition-colors flex items-center gap-1"
                   >
-                    {segment.isChannel && <ChannelPrefix type={segment.isPrivate ? "private_channel" : "public_channel"} size={12} />}
+                    {segment.isChannel && <ChannelPrefix type={segment.isPrivate ? "private_channel" : "public_channel"} size={13} />}
                     {segment.label}
                   </Link>
                 ) : (
                   <span
                     className={[
-                      "font-mono text-sm flex items-center gap-0.5",
-                      segment.dim
-                        ? "text-text-tertiary"
-                        : "text-text-secondary",
+                      "font-sans flex items-center gap-1",
+                      isLast && !segment.dim
+                        ? "text-base font-semibold text-text-primary"
+                        : segment.dim
+                          ? "text-sm text-text-tertiary"
+                          : "text-sm text-text-secondary",
                     ].join(" ")}
                   >
-                    {segment.isChannel && <ChannelPrefix type={segment.isPrivate ? "private_channel" : "public_channel"} size={12} />}
+                    {segment.isChannel && <ChannelPrefix type={segment.isPrivate ? "private_channel" : "public_channel"} size={13} />}
                     {segment.label}
                   </span>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ol>
         </nav>
       </div>

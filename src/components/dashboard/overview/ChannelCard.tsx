@@ -7,8 +7,82 @@ import { shortNumber, relativeTime } from "@/lib/utils/formatters";
 import { ChannelPrefix } from "@/components/ui";
 import type { ChannelCardData } from "@/lib/types";
 
+const TYPE_BADGE_CONFIG: Record<string, { label: string; color: string }> = {
+  client_delivery: { label: "Client", color: "var(--color-accent)" },
+  client_support: { label: "Support", color: "var(--theme-status-warning)" },
+  internal_engineering: { label: "Eng", color: "var(--theme-text-tertiary)" },
+  internal_operations: { label: "Ops", color: "var(--theme-text-tertiary)" },
+  internal_social: { label: "Social", color: "var(--theme-text-tertiary)" },
+  automated: { label: "Auto", color: "var(--theme-text-tertiary)" },
+};
+
 interface ChannelCardProps {
   channel: ChannelCardData;
+}
+
+function formatCompactCount(count: number, noun: string): string {
+  return `${shortNumber(count)} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function getActiveMessageCount(channel: ChannelCardData): number {
+  return channel.activeMessageCount ?? channel.messageCount;
+}
+
+function getTotalImportedMessageCount(channel: ChannelCardData): number {
+  return channel.totalImportedMessageCount ?? channel.messageCount;
+}
+
+function getReadyStatusCopy(channel: ChannelCardData): string {
+  const activeMessageCount = getActiveMessageCount(channel);
+  const totalImportedMessageCount = getTotalImportedMessageCount(channel);
+  const activeWindowDays = channel.activeWindowDays ?? 7;
+  const hasIncompleteBootstrap =
+    totalImportedMessageCount > 0 && (
+      channel.ingestReadiness === "not_started" ||
+      channel.ingestReadiness === "hydrating" ||
+      (
+        channel.intelligenceReadiness === "missing" &&
+        channel.latestSummaryCompleteness == null
+      )
+    );
+
+  if (hasIncompleteBootstrap) {
+    return "Setup still syncing";
+  }
+
+  if (channel.intelligenceReadiness === "bootstrap") {
+    return "Calibrating — building intelligence";
+  }
+
+  if (channel.messageDispositionCounts.inFlight > 0) {
+    return `Analyzing ${formatCompactCount(channel.messageDispositionCounts.inFlight, "msg")}`;
+  }
+
+  if (
+    channel.intelligenceReadiness === "partial" ||
+    channel.latestSummaryCompleteness === "partial" ||
+    channel.hasActiveDegradations
+  ) {
+    return "Building full history — dashboard active";
+  }
+
+  if (channel.sparklineData.length === 1 && channel.sentimentSnapshot.totalAnalyzed > 0) {
+    return "Trend baseline captured";
+  }
+
+  if (channel.sentimentSnapshot.totalAnalyzed > 0) {
+    return `Tracking ${formatCompactCount(channel.sentimentSnapshot.totalAnalyzed, "analysis")}`;
+  }
+
+  if (activeMessageCount > 0) {
+    return `Monitoring ${formatCompactCount(activeMessageCount, "recent msg")}`;
+  }
+
+  if (totalImportedMessageCount > 0) {
+    return `No recent messages in the last ${activeWindowDays}d`;
+  }
+
+  return "No messages ingested yet";
 }
 
 export function ChannelCard({ channel }: ChannelCardProps) {
@@ -19,26 +93,50 @@ export function ChannelCard({ channel }: ChannelCardProps) {
   const sparkColor = isReady ? getHealthColor(channel.health) : "var(--theme-status-neutral)";
   const dotColor = isFailed ? "var(--color-error)" : getChannelDotColor(channel.status, channel.health);
   const isInitializing = channel.status === "initializing";
+  const readyStatusCopy = getReadyStatusCopy(channel);
 
   return (
     <Link
       href={`/dashboard/channels/${channel.id}`}
       aria-label={`Channel ${channel.name}, ${isReady ? channel.health : channel.status}`}
-      className="group flex flex-col rounded-xl border border-border-subtle bg-bg-secondary/40 px-4 py-3 transition-all duration-200 hover:border-border-hover hover:bg-bg-secondary/70"
+      className="group flex flex-col rounded-xl border border-border-subtle bg-bg-secondary/40 px-4 py-4 transition-all duration-200 hover:border-border-hover hover:bg-bg-secondary/70 hover:shadow-md"
     >
       {/* Channel name */}
-      <div className="mb-2.5 flex items-center gap-1.5">
+      <div className="mb-3 flex items-center gap-1.5">
         <span
           className={[
-            "h-1.5 w-1.5 rounded-full flex-shrink-0",
+            "h-2 w-2 rounded-full flex-shrink-0",
             isInitializing ? "animate-pulse" : "",
           ].join(" ")}
           style={{ backgroundColor: dotColor }}
         />
-        <span className="font-mono text-[11px] font-medium text-text-primary truncate flex items-center gap-0.5">
-          <ChannelPrefix type={channel.conversationType} size={10} />
+        <span className="font-mono text-xs font-medium text-text-primary truncate flex items-center gap-0.5">
+          <ChannelPrefix type={channel.conversationType} size={11} />
           {channel.name}
         </span>
+        {isReady && (
+          <span
+            className="ml-auto flex-shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider"
+            style={{
+              color: getHealthColor(channel.health),
+              backgroundColor: `color-mix(in srgb, ${getHealthColor(channel.health)} 12%, transparent)`,
+            }}
+          >
+            {channel.health === "at-risk" ? "Risk" : channel.health === "attention" ? "Watch" : "OK"}
+          </span>
+        )}
+        {!isReady && channel.channelType && channel.channelType !== "unclassified" && TYPE_BADGE_CONFIG[channel.channelType] && (
+          <span
+            className="ml-auto flex-shrink-0 rounded-radius-full px-1.5 py-0.5 font-mono text-[9px] font-medium"
+            style={{
+              color: TYPE_BADGE_CONFIG[channel.channelType].color,
+              backgroundColor: `color-mix(in srgb, ${TYPE_BADGE_CONFIG[channel.channelType].color} 10%, transparent)`,
+              border: (channel.classificationConfidence ?? 0) < 0.5 ? "1px dashed currentColor" : "none",
+            }}
+          >
+            {TYPE_BADGE_CONFIG[channel.channelType].label}
+          </span>
+        )}
       </div>
 
       {/* Sparkline fills the bottom portion */}
@@ -53,7 +151,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
       ) : isReady ? (
         <div className="h-9 flex items-center">
           <span className="font-mono text-[9px] text-text-tertiary">
-            {channel.messageCount > 0 ? "Ready - trend still forming" : "Ready - no messages ingested yet"}
+            {readyStatusCopy}
           </span>
         </div>
       ) : isInitializing ? (
@@ -86,10 +184,14 @@ export function ChannelCard({ channel }: ChannelCardProps) {
       )}
 
       {/* Footer */}
-      <div className="mt-1.5 flex items-center justify-between gap-1">
-        <p className="font-mono text-[9px] text-text-tertiary truncate">
+      <div className="mt-2 flex items-center justify-between gap-1">
+        <p className="font-mono text-[10px] text-text-tertiary truncate">
           {isReady
-            ? `${shortNumber(channel.messageCount)} msgs`
+            ? getActiveMessageCount(channel) > 0
+              ? `${shortNumber(getActiveMessageCount(channel))} recent msgs`
+              : getTotalImportedMessageCount(channel) > 0
+                ? "No recent msgs"
+                : "No msgs yet"
             : isFailed
               ? "Failed"
               : isRemoved
@@ -99,7 +201,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
                 : "Queued"}
         </p>
         {channel.lastActivity && (
-          <p className="font-mono text-[9px] text-text-tertiary shrink-0">
+          <p className="font-mono text-[10px] text-text-tertiary shrink-0">
             {relativeTime(channel.lastActivity)}
           </p>
         )}

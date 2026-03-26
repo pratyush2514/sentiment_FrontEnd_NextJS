@@ -3,7 +3,10 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { IconArrowRight, IconClockHour4, IconFlame } from "@tabler/icons-react";
-import { MessageRichText } from "@/components/dashboard/common/MessageRichText";
+import {
+  describeTokenOnlySlackMessage,
+  MessageRichText,
+} from "@/components/dashboard/common/MessageRichText";
 import { OpenInSlackButton } from "@/components/dashboard/common/OpenInSlackButton";
 import { Skeleton } from "@/components/ui";
 import { apiFetch } from "@/lib/api";
@@ -215,6 +218,11 @@ export function AlertContextPanel({ alert }: { alert: AlertContextTarget }) {
               className="font-body text-sm leading-relaxed text-text-secondary"
               files={message.files}
             />
+            {describeTokenOnlySlackMessage(message.text) ? (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-text-tertiary">
+                {describeTokenOnlySlackMessage(message.text)}
+              </p>
+            ) : null}
             {message.threadTs && message.threadTs !== message.ts ? (
               <div className="mt-2 flex items-center gap-1 font-mono text-[10px] text-text-tertiary">
                 <IconClockHour4 size={10} />

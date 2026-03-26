@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
   const tokenResponse = await exchangeCodeForToken(code, redirectUri);
 
   if (!tokenResponse.ok || !tokenResponse.access_token) {
-    console.error("[login-callback] Slack token exchange failed:", tokenResponse.error);
     return NextResponse.redirect(new URL(`${ROUTES.CONNECT}?error=auth_failed`, baseUrl));
   }
 
@@ -57,7 +56,6 @@ export async function GET(request: NextRequest) {
   const installerUserId = tokenResponse.authed_user?.id;
 
   if (!workspaceId) {
-    console.error("[login-callback] No team_id in token response");
     return NextResponse.redirect(new URL(`${ROUTES.CONNECT}?error=missing_workspace`, baseUrl));
   }
 
@@ -79,8 +77,7 @@ export async function GET(request: NextRequest) {
       workspaceId,
       body: installPayload,
     });
-  } catch (err) {
-    console.error("[login-callback] Backend install failed:", err);
+  } catch {
     return NextResponse.redirect(
       new URL(`${ROUTES.SETUP}?error=install_failed`, baseUrl),
     );
@@ -99,11 +96,19 @@ export async function GET(request: NextRequest) {
     // Default to setup if channel check fails
   }
 
-  // Fire-and-forget: discover channels
-  backendFetch("/api/channels/sync", {
-    method: "POST",
-    workspaceId,
-  }).catch(() => {});
+  let discoveryQueued = true;
+  try {
+    await backendFetch("/api/channels/sync", {
+      method: "POST",
+      workspaceId,
+    });
+  } catch {
+    discoveryQueued = false;
+  }
+
+  if (!discoveryQueued && redirectUrl.pathname === ROUTES.SETUP) {
+    redirectUrl.searchParams.set("discovery_error", "true");
+  }
 
   // Create session and redirect
   const response = NextResponse.redirect(redirectUrl);

@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { IconChevronDown, IconFlame } from "@tabler/icons-react";
-import { MessageRichText } from "@/components/dashboard/common/MessageRichText";
+import {
+  describeTokenOnlySlackMessage,
+  MessageRichText,
+} from "@/components/dashboard/common/MessageRichText";
 import { OpenInSlackButton } from "@/components/dashboard/common/OpenInSlackButton";
 import {
   EmotionBadge,
@@ -52,6 +55,19 @@ function humanizeSignalValue(value?: string | null): string {
     .join(" ");
 }
 
+function confidenceBand(value?: number | null): string {
+  if (typeof value !== "number") {
+    return "—";
+  }
+  if (value >= 0.9) {
+    return "Strong";
+  }
+  if (value >= 0.75) {
+    return "Moderate";
+  }
+  return "Light";
+}
+
 interface ThreadMessageCardProps {
   message: ThreadMessage;
   channelId?: string;
@@ -77,6 +93,7 @@ export function ThreadMessageCard({
   );
   const hasTriggers = message.triggerPhrases && message.triggerPhrases.length > 0;
   const triageLabel = triageChipLabel(message);
+  const tokenOnlyMessageLabel = describeTokenOnlySlackMessage(message.text);
 
   const highlightColor =
     message.emotion === "anger"
@@ -94,7 +111,7 @@ export function ThreadMessageCard({
     <div
       id={anchorId}
       className={[
-        "scroll-mt-28 rounded-xl px-2 py-1 transition-colors",
+        "scroll-mt-28 rounded-xl px-3 py-3 transition-colors border-b border-border-subtle/40 last:border-b-0",
         highlighted ? "bg-accent/8 ring-1 ring-accent/25" : "",
         message.isCrucial ? "ring-1 ring-anger/20 bg-anger/4" : "",
       ].join(" ")}
@@ -114,11 +131,11 @@ export function ThreadMessageCard({
 
         <div className="min-w-0 flex-1">
           {/* Meta */}
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs font-medium text-text-primary">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <span className="font-sans text-sm font-semibold text-text-primary">
               {message.userName}
             </span>
-            <span className="font-mono text-[10px] text-text-tertiary">
+            <span className="font-mono text-xs text-text-tertiary">
               {liveCreatedAt}
             </span>
             {message.interactionTone ? (
@@ -187,7 +204,7 @@ export function ThreadMessageCard({
           </div>
 
           {/* Message text with in-text trigger phrase highlighting */}
-          <div className="font-body text-sm text-text-secondary">
+          <div className="font-body text-sm text-text-secondary leading-7">
             <MessageRichText
               text={message.text}
               className="space-y-1.5 leading-relaxed"
@@ -196,13 +213,18 @@ export function ThreadMessageCard({
               triggerPhrases={hasTriggers ? message.triggerPhrases : undefined}
               highlightColor={hasTriggers ? highlightColor : undefined}
             />
+            {tokenOnlyMessageLabel ? (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-text-tertiary">
+                {tokenOnlyMessageLabel}
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {showThreadLink && channelId ? (
               <a
                 href={`/dashboard/channels/${channelId}/threads/${message.threadTs ?? message.ts}?messageTs=${message.ts}#${anchorId}`}
-                className="font-mono text-[10px] text-accent transition-colors hover:text-accent-hover"
+                className="font-mono text-xs text-accent transition-colors hover:text-accent-hover font-medium"
               >
                 Open thread
               </a>
@@ -211,7 +233,7 @@ export function ThreadMessageCard({
               <OpenInSlackButton
                 channelId={channelId}
                 messageTs={message.ts}
-                className="px-0 py-0 text-[10px]"
+                className="px-0 py-0 text-xs"
                 label="Open in Slack"
               />
             ) : null}
@@ -279,10 +301,10 @@ export function ThreadMessageCard({
                         </div>
                         <div>
                           <span className="font-mono text-[9px] uppercase tracking-wider text-text-tertiary">
-                            Confidence
+                            Analysis signal
                           </span>
                           <p className="font-mono text-[11px] text-text-secondary">
-                            {typeof message.confidence === "number" ? `${Math.round(message.confidence * 100)}%` : "—"}
+                            {confidenceBand(message.confidence)}
                           </p>
                         </div>
                         {message.behavioralPattern && (

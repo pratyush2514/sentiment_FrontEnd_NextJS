@@ -47,6 +47,16 @@ export function useDashboardOverviewModel(
     () => groupAlertsByChannel(recentAlerts),
     [recentAlerts],
   );
+  const overviewUnavailable = Boolean(overviewQuery.error);
+  const channelsUnavailable = Boolean(channelsQuery.error);
+  const alertsUnavailable = Boolean(alertsQuery.error);
+  const trendsUnavailable = Boolean(trendsQuery.error);
+  const unavailableSections = [
+    overviewUnavailable ? "workspace overview" : null,
+    channelsUnavailable ? "channel health" : null,
+    alertsUnavailable ? "flagged messages" : null,
+    trendsUnavailable ? "sentiment trends" : null,
+  ].filter((value): value is string => Boolean(value));
 
   return {
     overview: overviewQuery.data,
@@ -57,6 +67,12 @@ export function useDashboardOverviewModel(
     channelsLoading: channelsQuery.isLoading,
     alertsLoading: alertsQuery.isLoading,
     trendsLoading: trendsQuery.isLoading,
+    overviewUnavailable,
+    channelsUnavailable,
+    alertsUnavailable,
+    trendsUnavailable,
+    hasUnavailableData: unavailableSections.length > 0,
+    unavailableSections,
     isLoading:
       overviewQuery.isLoading ||
       channelsQuery.isLoading ||

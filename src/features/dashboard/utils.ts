@@ -141,9 +141,11 @@ export function buildChannelDetailActionPlan({
     };
   }
 
+  const activeMessageCount =
+    state.activeMessageCount ?? state.windowStats?.messageCountInWindow ?? 0;
   const shouldSeedRollup =
     state.status === "ready" &&
-    state.messageCount > 0 &&
+    activeMessageCount > 0 &&
     (isPlaceholderSummary(state.runningSummary) || state.keyDecisions.length === 0 || threadSeedTargets.length > 0);
 
   const shouldSeedAnalysis =

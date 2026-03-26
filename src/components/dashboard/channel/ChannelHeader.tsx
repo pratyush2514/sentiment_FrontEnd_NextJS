@@ -11,6 +11,7 @@ interface ChannelHeaderProps {
 
 export function ChannelHeader({ name, status, state, conversationType }: ChannelHeaderProps) {
   const health = state?.health ?? null;
+  const activeMessageCount = state?.activeMessageCount ?? state?.messageCount ?? 0;
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -20,7 +21,7 @@ export function ChannelHeader({ name, status, state, conversationType }: Channel
         </h1>
         {state && (
           <p className="mt-0.5 font-body text-xs text-text-secondary">
-            {shortNumber(state.messageCount)} messages &middot;{" "}
+            {shortNumber(activeMessageCount)} recent messages &middot;{" "}
             {state.participants.length} participants
             {state.initializedAt
               ? ` · Monitoring since ${new Date(state.initializedAt).toLocaleDateString("en-US", {

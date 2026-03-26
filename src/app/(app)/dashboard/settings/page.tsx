@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSWRConfig } from "swr";
 import { IconAlertTriangle, IconBrandSlack, IconDeviceDesktop, IconMail, IconMoon, IconPlugConnectedX, IconShieldCheck, IconSun, IconUsers } from "@tabler/icons-react";
+import { FathomSettingsSection } from "@/components/dashboard/settings/FathomSettingsSection";
 import { Skeleton, ChannelPrefix } from "@/components/ui";
 import { SyncChannelsButton } from "@/components/dashboard/common/SyncChannelsButton";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -75,6 +76,16 @@ function roleLabel(role: UserRole | "unknown") {
     return "Unknown";
   }
   return role[0].toUpperCase() + role.slice(1);
+}
+
+function suggestionStrengthLabel(confidence: number): string {
+  if (confidence >= 0.9) {
+    return "Suggested · strong";
+  }
+  if (confidence >= 0.75) {
+    return "Suggested · moderate";
+  }
+  return "Suggested · light";
 }
 
 function getTokenRotationStatusCopy(
@@ -877,7 +888,7 @@ export default function SettingsPage() {
                             </span>
                           ) : suggestion ? (
                             <span className="rounded-full border border-border-subtle/70 bg-bg-primary/60 px-2 py-1 font-mono text-[10px] text-text-secondary">
-                              Suggested {Math.round(suggestion.confidence * 100)}%
+                              {suggestionStrengthLabel(suggestion.confidence)}
                             </span>
                           ) : null}
                           {entry.displayLabel ? (
@@ -990,6 +1001,14 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {wsStatus?.canDisconnect === false ? (
+          <div className="mb-4 rounded-xl border border-warning/25 bg-bg-primary/60 px-4 py-3">
+            <p className="font-body text-sm text-text-secondary">
+              Only the Slack user who originally connected this workspace can disconnect it and delete the stored data.
+            </p>
+          </div>
+        ) : null}
+
         {showDisconnectConfirm ? (
           <div className="rounded-xl border border-anger/30 bg-bg-primary/60 p-4">
             <p className="mb-3 font-body text-sm font-medium text-text-primary">
@@ -998,17 +1017,19 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                disabled={disconnecting}
+                disabled={disconnecting || wsStatus?.canDisconnect === false}
                 onClick={async () => {
                   setDisconnecting(true);
                   try {
                     const res = await fetch("/api/auth/disconnect", { method: "DELETE" });
                     if (res.ok) {
                       window.location.href = "/connect";
+                      return;
                     }
                   } catch {
-                    setDisconnecting(false);
+                    // Fall through and re-enable the control.
                   }
+                  setDisconnecting(false);
                 }}
                 className="rounded-lg bg-anger px-4 py-2 font-mono text-xs font-medium text-white transition-colors hover:bg-anger/80 disabled:opacity-50"
               >
@@ -1026,13 +1047,16 @@ export default function SettingsPage() {
         ) : (
           <button
             type="button"
+            disabled={wsStatus?.canDisconnect === false}
             onClick={() => setShowDisconnectConfirm(true)}
-            className="rounded-lg border border-anger/30 bg-bg-primary/60 px-4 py-2 font-mono text-xs text-anger transition-colors hover:bg-anger/10"
+            className="rounded-lg border border-anger/30 bg-bg-primary/60 px-4 py-2 font-mono text-xs text-anger transition-colors hover:bg-anger/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Disconnect workspace
           </button>
         )}
       </section>
+
+      <FathomSettingsSection />
     </div>
   );
 }

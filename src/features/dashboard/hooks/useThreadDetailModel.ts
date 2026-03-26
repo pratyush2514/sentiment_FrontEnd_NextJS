@@ -25,8 +25,13 @@ export function useThreadDetailModel(
   const queryConfig = toDashboardQueryConfig(refreshPolicy);
   const channelsQuery = useChannels(queryConfig);
   const stateQuery = useChannelState(channelId, queryConfig);
-  const threadsQuery = useThreads(channelId, queryConfig);
-  const messagesQuery = useThreadMessages(channelId, threadTs, queryConfig);
+  const threadsQuery = useThreads(channelId, queryConfig, options.scope);
+  const messagesQuery = useThreadMessages(
+    channelId,
+    threadTs,
+    queryConfig,
+    options.scope ?? "archive",
+  );
 
   const channel = channelsQuery.data?.find((entry) => entry.id === channelId);
   const state = stateQuery.data;

@@ -6,6 +6,7 @@ import { RecentAlerts } from "@/components/dashboard/overview/RecentAlerts";
 import { ChannelHealthSection } from "@/components/dashboard/overview/ChannelHealthSection";
 import { ActionInboxSection } from "@/components/dashboard/attention/ActionInboxSection";
 import { WidgetErrorBoundary } from "@/components/dashboard/common/WidgetErrorBoundary";
+import { MeetingCommitmentsCard } from "@/components/dashboard/meetings/MeetingCommitmentsCard";
 import { useDashboardOverviewModel } from "@/features/dashboard";
 
 export default function DashboardPage() {
@@ -13,11 +14,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-section">
+      {model.hasUnavailableData ? (
+        <div className="rounded-xl border border-warning/25 bg-warning/8 px-4 py-3">
+          <p className="font-body text-sm text-text-secondary">
+            Some dashboard data is temporarily unavailable: {model.unavailableSections.join(", ")}.
+            The visible cards may be stale until the backend responds again.
+          </p>
+        </div>
+      ) : null}
+
       <WidgetErrorBoundary label="stats">
         <StatsRow data={model.overview} isLoading={model.overviewLoading} />
       </WidgetErrorBoundary>
 
-      <div className="grid gap-group lg:grid-cols-[1fr_320px] items-start">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px] items-start">
         <WidgetErrorBoundary label="sentiment timeline">
           <WorkspaceSentimentChart
             data={model.trends}
@@ -28,12 +38,24 @@ export default function DashboardPage() {
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary label="flagged messages">
-          <RecentAlerts alerts={model.recentAlerts} isLoading={model.alertsLoading} />
+          <RecentAlerts
+            alerts={model.recentAlerts}
+            isLoading={model.alertsLoading}
+            isUnavailable={model.alertsUnavailable}
+          />
         </WidgetErrorBoundary>
       </div>
 
       <WidgetErrorBoundary label="channel health">
-        <ChannelHealthSection channels={model.channels} isLoading={model.channelsLoading} />
+        <ChannelHealthSection
+          channels={model.channels}
+          isLoading={model.channelsLoading}
+          isUnavailable={model.channelsUnavailable}
+        />
+      </WidgetErrorBoundary>
+
+      <WidgetErrorBoundary label="meeting commitments">
+        <MeetingCommitmentsCard />
       </WidgetErrorBoundary>
 
       <WidgetErrorBoundary label="action inbox">

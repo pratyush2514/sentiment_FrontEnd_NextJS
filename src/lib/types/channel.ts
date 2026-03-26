@@ -1,7 +1,13 @@
 // ─── Channel & Workspace Types ───────────────────────────────────────────
 
 import type { Emotion, EscalationRisk, SentimentTrajectory, MessageAnalysis, InteractionTone } from './sentiment';
-import type { AnalysisStatus } from "./message";
+import type {
+  AnalysisEligibility,
+  AnalysisExecution,
+  AnalysisQuality,
+  AnalysisStatus,
+  AnalysisSuppressionReason,
+} from "./message";
 import type {
   ChannelMode,
   ChannelModeOverride,
@@ -11,8 +17,43 @@ import type {
 } from "./api";
 
 export type ChannelStatus = 'pending' | 'initializing' | 'ready' | 'failed' | 'removed';
+export type ProductWindowScope = "active" | "archive" | "live";
 
 export type ChannelHealth = 'healthy' | 'attention' | 'at-risk';
+export type IngestReadiness = "not_started" | "hydrating" | "ready";
+export type IntelligenceReadiness = "missing" | "bootstrap" | "partial" | "ready" | "stale";
+export type SummaryArtifactKind = "channel_rollup" | "thread_rollup" | "backfill_rollup";
+export type SummaryGenerationMode = "llm" | "fallback" | "reused_existing";
+export type SummaryCompletenessStatus =
+  | "complete"
+  | "partial"
+  | "stale"
+  | "no_recent_messages";
+export type BackfillRunStatus =
+  | "running"
+  | "completed"
+  | "completed_with_degradations"
+  | "failed";
+export type BackfillRunPhase =
+  | "history_import"
+  | "thread_expansion"
+  | "user_enrichment"
+  | "member_sync"
+  | "initial_intelligence"
+  | "finalize";
+export type BackfillMemberSyncResult =
+  | "not_started"
+  | "running"
+  | "succeeded"
+  | "degraded"
+  | "failed";
+export type DegradationSignalScope =
+  | "channel"
+  | "message"
+  | "thread"
+  | "summary_artifact"
+  | "backfill_run";
+export type DegradationSignalSeverity = "info" | "warning" | "error";
 
 export interface SentimentSnapshot {
   totalAnalyzed: number;
@@ -52,6 +93,49 @@ export interface ChannelWindowStats {
   contextOnlyMessageCount: number;
   ignoredMessageCount: number;
   inflightMessageCount: number;
+}
+
+export interface ChannelWindowMetadata {
+  defaultScope?: ProductWindowScope;
+  activeWindowDays?: number;
+  archiveWindowDays?: number;
+  liveWindowHours?: number;
+  activeMessageCount?: number;
+  totalImportedMessageCount?: number;
+}
+
+export interface ChannelRecentActivity {
+  label: string;
+  windowHours: number;
+  messageCount: number;
+  activeThreads: number;
+  openFollowUps: number;
+  resolvedFollowUps: number;
+}
+
+export interface ChannelLatestMeeting {
+  id: string;
+  title: string;
+  startedAt: string;
+  source: "api" | "webhook" | "shared_link";
+  confidence: "high" | "medium";
+  meetingSentiment?: "positive" | "neutral" | "concerned" | "tense" | null;
+  summary?: string | null;
+  openObligations: number;
+  overdueObligations: number;
+  blockers: string[];
+  decisions: string[];
+  nextSteps: string[];
+}
+
+export interface ChannelMeetingContext {
+  latestMeeting: ChannelLatestMeeting;
+}
+
+export interface UnifiedDriver {
+  level: "positive" | "warning" | "critical";
+  source: "slack" | "fathom" | "combined";
+  message: string;
 }
 
 export interface Participant {
@@ -186,10 +270,32 @@ export interface ChannelThreadsData {
   recentThreads: ActiveThread[];
 }
 
+export type SummaryFactKind =
+  | "topic"
+  | "blocker"
+  | "resolution"
+  | "decision"
+  | "primary_issue"
+  | "open_question";
+
+export interface SummaryEvidenceRef {
+  messageTs: string;
+  threadTs?: string | null;
+  excerpt?: string | null;
+}
+
+export interface SummaryFact {
+  kind: SummaryFactKind;
+  text: string;
+  evidence: SummaryEvidenceRef[];
+}
+
 export interface KeyDecision {
   text: string;
   detectedAt: string | null;
-  threadTs?: string;
+  threadTs?: string | null;
+  messageTs?: string | null;
+  evidence?: SummaryEvidenceRef[];
   confidence: number;
   participantCount: number;
 }
@@ -206,6 +312,7 @@ export interface Channel {
 }
 
 export type ChannelSignal = 'stable' | 'elevated' | 'escalating';
+export type ChannelSignalEvidenceTier = "signal" | "pattern" | "confirmed";
 
 export interface RiskDriver {
   key: string;
@@ -238,6 +345,75 @@ export interface ChannelInsight {
   type: 'concern' | 'tension' | 'trend' | 'actor' | 'neutral';
 }
 
+export interface SummaryArtifact {
+  id: string;
+  summaryKind: SummaryArtifactKind;
+  generationMode: SummaryGenerationMode;
+  completenessStatus: SummaryCompletenessStatus;
+  summary: string;
+  keyDecisions: string[];
+  summaryFacts: SummaryFact[];
+  degradedReasons: string[];
+  coverageStartTs?: string | null;
+  coverageEndTs?: string | null;
+  candidateMessageCount: number;
+  includedMessageCount: number;
+  artifactVersion: number;
+  sourceRunId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SummaryCoverage {
+  startTs: string | null;
+  endTs: string | null;
+}
+
+export interface BackfillRun {
+  id: string;
+  status: BackfillRunStatus;
+  currentPhase: BackfillRunPhase;
+  pagesFetched: number;
+  messagesImported: number;
+  threadRootsDiscovered: number;
+  threadsAttempted: number;
+  threadsFailed: number;
+  usersResolved: number;
+  memberSyncResult: BackfillMemberSyncResult;
+  summaryArtifactId?: string | null;
+  degradedReasonCount: number;
+  lastError?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface DegradationSignal {
+  id: string;
+  scopeType: DegradationSignalScope;
+  scopeKey?: string | null;
+  messageTs?: string | null;
+  threadTs?: string | null;
+  summaryArtifactId?: string | null;
+  backfillRunId?: string | null;
+  degradationType: string;
+  severity: DegradationSignalSeverity;
+  details: Record<string, unknown>;
+  createdAt: string;
+  resolvedAt?: string | null;
+}
+
+export interface MessageTruthCounts {
+  total: number;
+  eligible: number;
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
+  suppressed: number;
+  partial: number;
+}
+
 export interface ThreadInsight {
   label: string;
   value: string;
@@ -266,12 +442,31 @@ export interface ChannelState {
   recommendedChannelMode?: ChannelMode;
   effectiveChannelMode?: ChannelMode;
   initializedAt: string | null;
+  ingestReadiness?: IngestReadiness | null;
+  intelligenceReadiness?: IntelligenceReadiness | null;
+  latestSummaryCompleteness?: SummaryCompletenessStatus | null;
+  hasActiveDegradations?: boolean;
+  currentSummaryArtifactId?: string | null;
+  activeBackfillRunId?: string | null;
+  activeWindowSummary?: string;
+  activeWindowSummaryUpdatedAt?: string | null;
+  activeWindowSummaryCoverage?: SummaryCoverage | null;
+  liveSummary?: string | null;
+  liveSummaryUpdatedAt?: string | null;
+  liveSummaryCoverage?: SummaryCoverage | null;
   runningSummary: string;
+  summaryArtifact?: SummaryArtifact | null;
+  backfillRun?: BackfillRun | null;
+  degradationSignals?: DegradationSignal[];
   health: ChannelHealth;
   signal: ChannelSignal;
   signalConfidence: number;
+  signalEvidenceTier?: ChannelSignalEvidenceTier;
   insights: ChannelInsight[];
   riskDrivers: RiskDriver[];
+  recentActivity?: ChannelRecentActivity | null;
+  meetingContext?: ChannelMeetingContext | null;
+  unifiedDrivers?: UnifiedDriver[];
   attentionSummary: AttentionSummary;
   messageDispositionCounts: MessageDispositionCounts;
   relatedIncidents?: RelatedIncident[];
@@ -282,6 +477,12 @@ export interface ChannelState {
   healthCounts: HealthCounts;
   windowStats?: ChannelWindowStats;
   threadInsights?: ThreadInsight[];
+  defaultScope?: ProductWindowScope;
+  activeWindowDays?: number;
+  archiveWindowDays?: number;
+  liveWindowHours?: number;
+  activeMessageCount?: number;
+  totalImportedMessageCount?: number;
   messageCount: number;
   lastEventAt: string | null;
 }
@@ -291,9 +492,14 @@ export interface ChannelCardData {
   name: string;
   status: ChannelStatus;
   conversationType?: ConversationType;
+  ingestReadiness?: IngestReadiness | null;
+  intelligenceReadiness?: IntelligenceReadiness | null;
+  latestSummaryCompleteness?: SummaryCompletenessStatus | null;
+  hasActiveDegradations?: boolean;
   health: ChannelHealth;
   signal: ChannelSignal;
   signalConfidence: number;
+  signalEvidenceTier?: ChannelSignalEvidenceTier;
   effectiveChannelMode?: ChannelMode;
   riskDrivers: RiskDriver[];
   attentionSummary: AttentionSummary;
@@ -303,6 +509,32 @@ export interface ChannelCardData {
   sentimentSnapshot: SentimentSnapshot;
   healthCounts: HealthCounts;
   sparklineData: number[];
+  defaultScope?: ProductWindowScope;
+  activeWindowDays?: number;
+  archiveWindowDays?: number;
+  liveWindowHours?: number;
+  activeMessageCount?: number;
+  totalImportedMessageCount?: number;
+  /** AI-classified channel type (optional, filled when classification exists) */
+  channelType?: string | null;
+  classificationConfidence?: number | null;
+}
+
+export interface ChannelDiagnostics {
+  channelId: string;
+  channelName: string;
+  status: ChannelStatus;
+  ingestReadiness: IngestReadiness;
+  intelligenceReadiness: IntelligenceReadiness;
+  latestSummaryCompleteness?: SummaryCompletenessStatus | null;
+  hasActiveDegradations: boolean;
+  currentSummaryArtifactId?: string | null;
+  activeBackfillRunId?: string | null;
+  summaryArtifact?: SummaryArtifact | null;
+  backfillRun?: BackfillRun | null;
+  degradationSignals: DegradationSignal[];
+  messageTruthCounts: MessageTruthCounts;
+  generatedAt: string;
 }
 
 export interface SlackFileAttachment {
@@ -349,6 +581,10 @@ export interface ThreadMessage {
   source?: "realtime" | "backfill";
   createdAt: string | null;
   analysisStatus?: AnalysisStatus;
+  analysisEligibility?: AnalysisEligibility | null;
+  analysisExecution?: AnalysisExecution | null;
+  analysisQuality?: AnalysisQuality | null;
+  suppressionReason?: AnalysisSuppressionReason | null;
   emotion?: Emotion;
   confidence?: number;
   escalationRisk?: EscalationRisk;

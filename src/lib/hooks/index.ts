@@ -20,3 +20,19 @@ export type { SyncResult } from "./useSyncChannels";
 export { useWorkspaceStatus } from "./useWorkspaceStatus";
 export type { WorkspaceStatus } from "./useWorkspaceStatus";
 export { useRelativeTime, useOverdueDuration } from "./useRelativeTime";
+export { useMeetingObligations, updateObligationStatus } from "./useMeetingObligations";
+export type { MeetingObligation } from "./useMeetingObligations";
+export { useMeetings } from "./useMeetings";
+export type { Meeting } from "./useMeetings";
+export {
+  useFathomConnection,
+  connectFathom,
+  disconnectFathom,
+  startFathomHistoricalSync,
+  updateFathomDefaultChannel,
+} from "./useFathomConnection";
+export type { FathomConnection, FathomHistoricalSync } from "./useFathomConnection";
+export { useMeetingChannelLinks, createMeetingChannelLink, deleteMeetingChannelLink } from "./useMeetingChannelLinks";
+export type { MeetingChannelLink } from "./useMeetingChannelLinks";
+export { useChannelClassification, useChannelClassifications, overrideChannelClassification } from "./useChannelClassification";
+export type { ChannelClassification } from "./useChannelClassification";
